@@ -1,0 +1,667 @@
+{
+    "project": {
+        "title": "BodaConnect \u2013 BodaBoda Digital Web Application",
+        "description": "BodaConnect is a simple web application that allows customers to request bodaboda rides by entering pickup and destination locations. Riders can view assigned trips through their dashboard, while administrators manage users, riders, ride requests, and system activities.",
+        "technology_stack": {
+            "backend": "Laravel 13",
+            "frontend": "Blade with Tailwind CSS",
+            "ui_scaffolding": "Laravel Boost",
+            "architecture_style": "MVC with Service Layer",
+            "principle": "One function, one task"
+        },
+        "fixed_colors": {
+            "primary": {
+                "name": "Blue",
+                "hex": "#0066CC"
+            },
+            "secondary": {
+                "name": "Amber/Yellow",
+                "hex": "#FFAD03"
+            },
+            "tertiary": {
+                "name": "Orange",
+                "hex": "#FD9148"
+            }
+        }
+    },
+    "users_and_roles": {
+        "admin": {
+            "description": "Manages the whole system.",
+            "permissions": [
+                "Login and logout",
+                "Manage customers",
+                "Manage riders",
+                "View all ride requests",
+                "Assign rides to riders",
+                "View completed, pending, and cancelled rides",
+                "Delete or deactivate users",
+                "View system dashboard statistics"
+            ]
+        },
+        "customer": {
+            "description": "Requests bodaboda rides.",
+            "permissions": [
+                "Register and login",
+                "View homepage",
+                "Request a ride",
+                "Enter pickup location",
+                "Enter destination location",
+                "View ride request status",
+                "Cancel a pending ride",
+                "View ride history"
+            ]
+        },
+        "rider": {
+            "description": "Receives and manages assigned trips.",
+            "permissions": [
+                "Login and logout",
+                "View rider dashboard",
+                "See assigned trips",
+                "Accept assigned trips",
+                "Mark trips as in progress",
+                "Mark trips as completed",
+                "View completed trip history"
+            ]
+        }
+    },
+    "functional_requirements": [
+        {
+            "id": "FR-001",
+            "name": "User Registration",
+            "description": "The system shall allow customers to create an account.",
+            "required_fields": [
+                "Full name",
+                "Email",
+                "Phone number",
+                "Password",
+                "Confirm password"
+            ],
+            "validation_rules": [
+                "Email must be unique",
+                "Phone number must be unique",
+                "Password must be confirmed",
+                "Required fields should not be empty"
+            ]
+        },
+        {
+            "id": "FR-002",
+            "name": "User Login",
+            "description": "The system shall allow registered users to login.",
+            "users": [
+                "Admin",
+                "Customer",
+                "Rider"
+            ],
+            "redirection_rules": {
+                "admin": "Admin Dashboard",
+                "customer": "Customer Homepage",
+                "rider": "Rider Dashboard"
+            }
+        },
+        {
+            "id": "FR-003",
+            "name": "Role-Based Access Control",
+            "description": "The system shall manage access based on user roles.",
+            "rules": [
+                "Customers cannot access admin pages",
+                "Riders cannot access admin management pages",
+                "Admin can manage all users and rides",
+                "Riders can only see rides assigned to them",
+                "Customers can only see their own ride requests"
+            ],
+            "roles": [
+                "admin",
+                "customer",
+                "rider"
+            ]
+        },
+        {
+            "id": "FR-004",
+            "name": "Homepage",
+            "description": "The system shall provide a homepage with a welcome message.",
+            "welcome_message": "Welcome to BodaConnect",
+            "features": [
+                "App name",
+                "Short description",
+                "Login button",
+                "Register button",
+                "Request Ride button",
+                "Simple bodaboda service information"
+            ],
+            "color_usage": [
+                "#0066CC",
+                "#FFAD03",
+                "#FD9148"
+            ]
+        },
+        {
+            "id": "FR-005",
+            "name": "Request Ride",
+            "description": "The system shall allow customers to request a ride.",
+            "input_fields": [
+                "Pickup location",
+                "Destination location",
+                "Optional notes"
+            ],
+            "default_status": "Pending",
+            "status_options": [
+                "Pending",
+                "Assigned",
+                "Accepted",
+                "In Progress",
+                "Completed",
+                "Cancelled"
+            ]
+        },
+        {
+            "id": "FR-006",
+            "name": "View Ride Request Status",
+            "description": "The system shall allow customers to view the status of their ride requests.",
+            "display_fields": [
+                "Pickup location",
+                "Destination",
+                "Assigned rider if available",
+                "Ride status",
+                "Request date and time"
+            ]
+        },
+        {
+            "id": "FR-007",
+            "name": "Cancel Ride",
+            "description": "The system shall allow customers to cancel a ride only when it is still pending.",
+            "rules": [
+                "Customer can cancel only pending rides",
+                "Customer cannot cancel accepted rides",
+                "Customer cannot cancel completed rides"
+            ]
+        },
+        {
+            "id": "FR-008",
+            "name": "Admin Dashboard",
+            "description": "The system shall provide an admin dashboard.",
+            "dashboard_items": [
+                "Total customers",
+                "Total riders",
+                "Total ride requests",
+                "Pending rides",
+                "Completed rides",
+                "Cancelled rides"
+            ]
+        },
+        {
+            "id": "FR-009",
+            "name": "Manage Riders",
+            "description": "The system shall allow the admin to manage riders.",
+            "actions": [
+                "Add rider",
+                "View riders",
+                "Update rider details",
+                "Delete or deactivate rider",
+                "Assign rides to riders"
+            ]
+        },
+        {
+            "id": "FR-010",
+            "name": "Manage Customers",
+            "description": "The system shall allow the admin to manage customers.",
+            "actions": [
+                "View all customers",
+                "View customer ride history",
+                "Delete or deactivate customer accounts"
+            ]
+        },
+        {
+            "id": "FR-011",
+            "name": "Assign Ride to Rider",
+            "description": "The system shall allow the admin to assign a pending ride request to a rider.",
+            "rules": [
+                "Only pending rides can be assigned",
+                "Ride status changes from Pending to Assigned",
+                "Assigned rider can view the ride in rider dashboard"
+            ]
+        },
+        {
+            "id": "FR-012",
+            "name": "Rider Dashboard",
+            "description": "The system shall provide a rider dashboard.",
+            "display_items": [
+                "Assigned trips",
+                "Trip pickup location",
+                "Trip destination",
+                "Trip status",
+                "Action buttons"
+            ],
+            "actions": [
+                "Accept trip",
+                "Start trip",
+                "Complete trip"
+            ]
+        },
+        {
+            "id": "FR-013",
+            "name": "Accept Ride",
+            "description": "The system shall allow a rider to accept an assigned ride.",
+            "status_before": "Assigned",
+            "status_after": "Accepted"
+        },
+        {
+            "id": "FR-014",
+            "name": "Start Ride",
+            "description": "The system shall allow a rider to start an accepted ride.",
+            "status_before": "Accepted",
+            "status_after": "In Progress"
+        },
+        {
+            "id": "FR-015",
+            "name": "Complete Ride",
+            "description": "The system shall allow a rider to complete a ride.",
+            "status_before": "In Progress",
+            "status_after": "Completed"
+        },
+        {
+            "id": "FR-016",
+            "name": "Ride History",
+            "description": "The system shall allow users to view ride history.",
+            "access_rules": {
+                "customer": "Can view their own previous ride requests",
+                "rider": "Can view trips completed by them",
+                "admin": "Can view all system ride history"
+            }
+        },
+        {
+            "id": "FR-017",
+            "name": "Logout",
+            "description": "The system shall allow all authenticated users to logout safely.",
+            "post_logout_redirect": "Login page or homepage"
+        }
+    ],
+    "non_functional_requirements": [
+        {
+            "id": "NFR-001",
+            "name": "Usability",
+            "description": "The system shall be easy to use for customers, riders, and admins.",
+            "criteria": [
+                "Clear buttons",
+                "Simple forms",
+                "Short labels",
+                "Mobile-friendly layouts",
+                "Easy navigation"
+            ]
+        },
+        {
+            "id": "NFR-002",
+            "name": "Performance",
+            "description": "The system should load pages quickly.",
+            "criteria": [
+                "Homepage, login, register, and dashboards should load within a few seconds under normal network conditions"
+            ]
+        },
+        {
+            "id": "NFR-003",
+            "name": "Security",
+            "description": "The system shall protect user data.",
+            "criteria": [
+                "Password hashing",
+                "Authentication",
+                "Role-based access control",
+                "CSRF protection",
+                "Form validation",
+                "Protected routes",
+                "Secure logout"
+            ]
+        },
+        {
+            "id": "NFR-004",
+            "name": "Maintainability",
+            "description": "The system shall be easy to maintain and update.",
+            "criteria": [
+                "Each feature should have a Model",
+                "Each feature should have a Controller",
+                "Each feature should have a Service",
+                "Blade views and components should be used where needed",
+                "Each function should perform only one task"
+            ]
+        },
+        {
+            "id": "NFR-005",
+            "name": "Reusability",
+            "description": "The system shall use reusable components.",
+            "components": [
+                "Button component",
+                "Input field component",
+                "Card component",
+                "Dashboard stat card",
+                "Alert message component",
+                "Table component",
+                "Navbar component",
+                "Sidebar component"
+            ]
+        },
+        {
+            "id": "NFR-006",
+            "name": "Reliability",
+            "description": "The system should work correctly under normal usage.",
+            "criteria": [
+                "Prevent empty ride requests",
+                "Prevent duplicate user emails",
+                "Prevent unauthorized access",
+                "Prevent invalid status changes",
+                "Completed rides should not be changed back to pending by a rider"
+            ]
+        },
+        {
+            "id": "NFR-007",
+            "name": "Scalability",
+            "description": "The system should allow future improvements.",
+            "future_features": [
+                "Payment integration",
+                "Real-time location tracking",
+                "SMS notification",
+                "USSD support",
+                "Mobile app integration",
+                "Rating system",
+                "Fare estimation"
+            ]
+        },
+        {
+            "id": "NFR-008",
+            "name": "Compatibility",
+            "description": "The system should work on modern browsers and responsive devices.",
+            "browsers": [
+                "Google Chrome",
+                "Mozilla Firefox",
+                "Microsoft Edge",
+                "Safari"
+            ],
+            "devices": [
+                "Mobile phones",
+                "Tablets",
+                "Laptops",
+                "Desktop computers"
+            ]
+        },
+        {
+            "id": "NFR-009",
+            "name": "Accessibility",
+            "description": "The system should be easy to read and use.",
+            "criteria": [
+                "Good color contrast",
+                "Clear text",
+                "Large enough buttons",
+                "Simple forms",
+                "Meaningful error messages"
+            ]
+        },
+        {
+            "id": "NFR-010",
+            "name": "Data Integrity",
+            "description": "The system should ensure that stored data is accurate.",
+            "criteria": [
+                "A ride must belong to a customer",
+                "An assigned ride must belong to a rider",
+                "A user must have one valid role",
+                "Ride status should follow the correct flow"
+            ],
+            "status_flows": {
+                "normal_flow": [
+                    "Pending",
+                    "Assigned",
+                    "Accepted",
+                    "In Progress",
+                    "Completed"
+                ],
+                "alternative_flow": [
+                    "Pending",
+                    "Cancelled"
+                ]
+            }
+        }
+    ],
+    "database_models": {
+        "User": {
+            "description": "Stores all users.",
+            "fields": [
+                "id",
+                "name",
+                "email",
+                "phone",
+                "password",
+                "role",
+                "status",
+                "created_at",
+                "updated_at"
+            ],
+            "roles": [
+                "admin",
+                "customer",
+                "rider"
+            ],
+            "status_options": [
+                "active",
+                "inactive"
+            ]
+        },
+        "RideRequest": {
+            "description": "Stores customer ride requests.",
+            "fields": [
+                "id",
+                "customer_id",
+                "rider_id",
+                "pickup_location",
+                "destination_location",
+                "notes",
+                "status",
+                "created_at",
+                "updated_at"
+            ],
+            "relationships": [
+                "RideRequest belongs to Customer",
+                "RideRequest belongs to Rider"
+            ],
+            "status_options": [
+                "Pending",
+                "Assigned",
+                "Accepted",
+                "In Progress",
+                "Completed",
+                "Cancelled"
+            ]
+        }
+    },
+    "controllers_and_services": {
+        "AuthController": {
+            "service": "AuthService",
+            "methods": [
+                "showLoginForm",
+                "login",
+                "showRegisterForm",
+                "register",
+                "logout"
+            ]
+        },
+        "RideRequestController": {
+            "service": "RideRequestService",
+            "methods": [
+                "index",
+                "create",
+                "store",
+                "show",
+                "cancel"
+            ]
+        },
+        "AdminRideController": {
+            "service": "AdminRideService",
+            "methods": [
+                "index",
+                "show",
+                "assignRider"
+            ]
+        },
+        "RiderDashboardController": {
+            "service": "RiderRideService",
+            "methods": [
+                "index",
+                "acceptRide",
+                "startRide",
+                "completeRide"
+            ]
+        },
+        "UserManagementController": {
+            "service": "UserManagementService",
+            "methods": [
+                "customers",
+                "riders",
+                "createRider",
+                "storeRider",
+                "editRider",
+                "updateRider",
+                "deleteUser"
+            ]
+        }
+    },
+    "suggested_folder_structure": {
+        "app": {
+            "Models": [
+                "User.php",
+                "RideRequest.php"
+            ],
+            "Http": {
+                "Controllers": [
+                    "AuthController.php",
+                    "RideRequestController.php",
+                    "AdminRideController.php",
+                    "RiderDashboardController.php",
+                    "UserManagementController.php"
+                ]
+            },
+            "Services": [
+                "AuthService.php",
+                "RideRequestService.php",
+                "AdminRideService.php",
+                "RiderRideService.php",
+                "UserManagementService.php"
+            ]
+        }
+    },
+    "reusable_components": {
+        "layout_components": [
+            "app-layout.blade.php",
+            "guest-layout.blade.php",
+            "admin-layout.blade.php",
+            "rider-layout.blade.php",
+            "customer-layout.blade.php"
+        ],
+        "ui_components": [
+            "primary-button.blade.php",
+            "secondary-button.blade.php",
+            "tertiary-button.blade.php",
+            "input-field.blade.php",
+            "form-label.blade.php",
+            "alert-message.blade.php",
+            "dashboard-card.blade.php",
+            "data-table.blade.php",
+            "navbar.blade.php",
+            "sidebar.blade.php"
+        ]
+    },
+    "main_pages": [
+        "Homepage",
+        "Login Page",
+        "Register Page",
+        "Customer Dashboard",
+        "Request Ride Page",
+        "Customer Ride History Page",
+        "Rider Dashboard",
+        "Assigned Trips Page",
+        "Admin Dashboard",
+        "Manage Customers Page",
+        "Manage Riders Page",
+        "Manage Ride Requests Page"
+    ],
+    "route_protection": {
+        "admin_routes": {
+            "middleware": [
+                "auth",
+                "role:admin"
+            ],
+            "example_route": "/admin/dashboard"
+        },
+        "customer_routes": {
+            "middleware": [
+                "auth",
+                "role:customer"
+            ],
+            "example_route": "/customer/dashboard"
+        },
+        "rider_routes": {
+            "middleware": [
+                "auth",
+                "role:rider"
+            ],
+            "example_route": "/rider/dashboard"
+        }
+    },
+    "ride_status_rules": [
+        {
+            "action": "Request ride",
+            "user": "Customer",
+            "status_before": null,
+            "status_after": "Pending"
+        },
+        {
+            "action": "Assign rider",
+            "user": "Admin",
+            "status_before": "Pending",
+            "status_after": "Assigned"
+        },
+        {
+            "action": "Accept ride",
+            "user": "Rider",
+            "status_before": "Assigned",
+            "status_after": "Accepted"
+        },
+        {
+            "action": "Start ride",
+            "user": "Rider",
+            "status_before": "Accepted",
+            "status_after": "In Progress"
+        },
+        {
+            "action": "Complete ride",
+            "user": "Rider",
+            "status_before": "In Progress",
+            "status_after": "Completed"
+        },
+        {
+            "action": "Cancel ride",
+            "user": "Customer",
+            "status_before": "Pending",
+            "status_after": "Cancelled"
+        }
+    ],
+    "tailwind_configuration": {
+        "file": "tailwind.config.js",
+        "colors": {
+            "primary": "#0066CC",
+            "secondary": "#FFAD03",
+            "tertiary": "#FD9148"
+        },
+        "usage_examples": [
+            "bg-primary text-white",
+            "bg-secondary text-black",
+            "bg-tertiary text-white"
+        ]
+    },
+    "coding_rules": [
+        "Use Laravel 13",
+        "Use Laravel Boost",
+        "Use Tailwind CSS",
+        "Use fixed raw colors as constants",
+        "Use role management for admin, customer, and rider",
+        "Each main feature should have its own Model, Controller, and Service",
+        "Create reusable Blade components",
+        "Follow one function, one task",
+        "Use form validation before saving data",
+        "Protect routes using middleware"
+    ]
+}
