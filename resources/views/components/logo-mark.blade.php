@@ -1,0 +1,18 @@
+@props(['title' => 'BodaConnect'])
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{{ $title }}" {{ $attributes->merge(['class' => 'h-10 w-10']) }}>
+    <defs>
+        <linearGradient id="bc-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0f766e" />
+            <stop offset="100%" stop-color="#0d9488" />
+        </linearGradient>
+    </defs>
+    <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#bc-grad)" />
+    <g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="20" cy="44" r="7" />
+        <circle cx="44" cy="44" r="7" />
+        <path d="M20 44h11l6-12h9" />
+        <path d="M26 28h9l3 8" />
+        <path d="M18 31h8" />
+        <path d="M46 44h6" />
+    </g>
+</svg>
