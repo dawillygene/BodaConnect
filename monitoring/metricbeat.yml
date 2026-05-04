@@ -1,0 +1,53 @@
+metricbeat.modules:
+  - module: system
+    period: 10s
+    metricsets:
+      - cpu
+      - load
+      - memory
+      - network
+      - process
+      - process_summary
+      - filesystem
+      - fsstat
+      - diskio
+    processes: ['.*']
+    process.include_top_n:
+      by_cpu: 5
+      by_memory: 5
+    hostfs: /hostfs
+  - module: docker
+    hosts: ["unix:///var/run/docker.sock"]
+    period: 10s
+    metricsets:
+      - container
+      - cpu
+      - diskio
+      - healthcheck
+      - info
+      - memory
+      - network
+    containers.ids:
+      - "*"
+
+processors:
+  - add_host_metadata: ~
+  - add_docker_metadata: ~
+  - drop_event:
+      when:
+        and:
+          - has_fields: ["container.name"]
+          - not:
+              equals:
+                container.name: "${BODACONNECT_APP_CONTAINER_NAME:bodaconnect-app}"
+
+setup.kibana:
+  host: "kibana:5601"
+
+setup.dashboards.enabled: true
+setup.dashboards.retry.enabled: true
+setup.dashboards.retry.interval: 10s
+setup.dashboards.retry.maximum: 30
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]

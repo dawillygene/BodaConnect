@@ -12,7 +12,9 @@ mkdir -p \
     "$APP_ROOT/storage/framework/views" \
     "$APP_ROOT/storage/logs"
 
-touch "$APP_ROOT/database/database.sqlite"
+if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
+    touch "$APP_ROOT/database/database.sqlite"
+fi
 
 if ! chown -R www-data:www-data "$APP_ROOT/bootstrap/cache" "$APP_ROOT/database" "$APP_ROOT/storage"; then
     echo "WARNING: Could not chown bind-mounted paths. Falling back to permissive write permissions." >&2

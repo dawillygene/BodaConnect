@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "serve": "php artisan serve",
-    "dev": "echo 'Vite/Tailwind native build disabled on this environment (Bus error in @tailwindcss/oxide). Using Blade + Tailwind CDN fallback.'",
-    "build": "echo 'Build skipped: using Tailwind CDN fallback in Blade layouts.'"
+    "dev": "echo 'Frontend now lives in ./frontend. Run npm install && npm run dev inside frontend/.'",
+    "build": "echo 'Build the React app from ./frontend with npm run build.'"
   }
 }

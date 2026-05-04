@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\RideRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class RideLifecycleTest extends TestCase
@@ -17,7 +18,9 @@ class RideLifecycleTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         $rider = User::factory()->create(['role' => 'rider']);
 
-        $createResponse = $this->actingAs($customer)->post('/rides', [
+        Sanctum::actingAs($customer);
+
+        $createResponse = $this->postJson('/api/rides', [
             'pickup_location' => 'Kampala Road',
             'destination_location' => 'Ntinda',
             'notes' => 'Call on arrival',
@@ -25,10 +28,12 @@ class RideLifecycleTest extends TestCase
 
         $createResponse->assertCreated();
 
-        $rideId = $createResponse->json('id');
+        $rideId = $createResponse->json('ride.id');
         $this->assertNotNull($rideId);
 
-        $this->actingAs($admin)->post("/admin/rides/{$rideId}/assign", [
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/admin/rides/{$rideId}/assign", [
             'rider_id' => $rider->id,
         ])->assertOk();
 
@@ -38,9 +43,11 @@ class RideLifecycleTest extends TestCase
             'rider_id' => $rider->id,
         ]);
 
-        $this->actingAs($rider)->post("/rider/rides/{$rideId}/accept")->assertOk();
-        $this->actingAs($rider)->post("/rider/rides/{$rideId}/start")->assertOk();
-        $this->actingAs($rider)->post("/rider/rides/{$rideId}/complete")->assertOk();
+        Sanctum::actingAs($rider);
+
+        $this->postJson("/api/rider/rides/{$rideId}/accept")->assertOk();
+        $this->postJson("/api/rider/rides/{$rideId}/start")->assertOk();
+        $this->postJson("/api/rider/rides/{$rideId}/complete")->assertOk();
 
         $this->assertDatabaseHas('ride_requests', [
             'id' => $rideId,
@@ -56,8 +63,9 @@ class RideLifecycleTest extends TestCase
             'status' => 'Assigned',
         ]);
 
-        $this->actingAs($customer)
-            ->postJson("/rides/{$rideRequest->id}/cancel")
+        Sanctum::actingAs($customer);
+
+        $this->postJson("/api/rides/{$rideRequest->id}/cancel")
             ->assertStatus(422);
     }
 }

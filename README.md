@@ -57,3 +57,35 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 # BodaConnect
+
+## Monitoring
+
+This project includes an Elastic monitoring stack for container and host metrics:
+
+- `elasticsearch` stores the metrics
+- `kibana` provides dashboards at `http://localhost:5601`
+- `metricbeat` collects CPU, memory, disk, and Docker container metrics
+- Docker metrics are narrowed to `bodaconnect-app` so Kibana focuses on your application container
+- On rootless Podman, Metricbeat reads the Podman API socket from `${XDG_RUNTIME_DIR}/podman/podman.sock`
+
+Start everything with:
+
+```bash
+docker compose up -d
+```
+
+Then open Kibana and go to:
+
+```text
+Analytics -> Dashboards
+```
+
+or
+
+```text
+Observability -> Infrastructure
+```
+
+to inspect metrics for `bodaconnect-app` and the host machine.
+
+Metricbeat also loads the built-in Kibana dashboards automatically on startup. After Kibana is ready, look for dashboards containing `Metricbeat` and filter by container name `bodaconnect-app` if needed.
