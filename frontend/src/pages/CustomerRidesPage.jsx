@@ -77,13 +77,16 @@ export function CustomerRidesPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        description="Create new requests and manage pending ones."
+        description="Create a new ride request and review your full trip history."
         eyebrow="Customer"
+        meta="Pending rides can be cancelled here before they move into active delivery."
         title="My rides"
       />
 
-      <Panel>
-        <h3>Create a ride request</h3>
+      <Panel
+        description="Enter the trip details below and send the request to dispatch."
+        title="Request a ride"
+      >
         <form className="form-stack" onSubmit={handleSubmit}>
           <div className="two-column-grid">
             <FormField
@@ -116,12 +119,27 @@ export function CustomerRidesPage() {
         </form>
       </Panel>
 
-      <Panel>
-        <h3>Ride history</h3>
+      <Panel
+        description="Every ride tied to your account, including rider assignment and status."
+        title="Ride history"
+      >
         {rides.length === 0 ? (
           <EmptyState title="No rides found" description="Your ride history will appear here." />
         ) : (
-          <div className="table-wrap">
+          <>
+            <div className="table-summary-grid">
+              <div className="table-summary-card">
+                <span className="table-summary-label">Total records</span>
+                <strong className="table-summary-value">{rides.length}</strong>
+              </div>
+              <div className="table-summary-card">
+                <span className="table-summary-label">Pending rides</span>
+                <strong className="table-summary-value">
+                  {rides.filter((ride) => ride.status === 'Pending').length}
+                </strong>
+              </div>
+            </div>
+            <div className="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -137,7 +155,7 @@ export function CustomerRidesPage() {
                 {rides.map((ride) => (
                   <tr key={ride.id}>
                     <td>#{ride.id}</td>
-                    <td>{ride.pickup_location} to {ride.destination_location}</td>
+                    <td className="route-text">{ride.pickup_location} to {ride.destination_location}</td>
                     <td><StatusBadge status={ride.status} /></td>
                     <td>{ride.rider?.name ?? 'Unassigned'}</td>
                     <td>{formatDate(ride.created_at)}</td>
@@ -157,6 +175,7 @@ export function CustomerRidesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Panel>
     </div>
