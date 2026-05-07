@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'monitoring' => [
+        'elasticsearch_url' => env('ELASTICSEARCH_URL', 'http://elasticsearch:9200'),
+        'kibana_url' => env('KIBANA_URL', 'http://kibana:5601'),
+        'metricbeat_index' => env('METRICBEAT_INDEX', 'metricbeat-*'),
+        'database_metric_module' => env('MONITORING_DATABASE_METRIC_MODULE', 'mysql'),
+    ],
+
 ];
