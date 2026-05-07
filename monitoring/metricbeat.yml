@@ -29,6 +29,11 @@ metricbeat.modules:
       - network
     containers.ids:
       - "*"
+  - module: mysql
+    metricsets:
+      - status
+    period: 10s
+    hosts: ["${MYSQL_MONITORING_DSN:root:rootsecret@tcp(db:3306)/}"]
 
 processors:
   - add_host_metadata: ~
@@ -38,8 +43,13 @@ processors:
         and:
           - has_fields: ["container.name"]
           - not:
-              equals:
-                container.name: "${BODACONNECT_APP_CONTAINER_NAME:bodaconnect-app}"
+              or:
+                - equals:
+                    container.name: "${BODACONNECT_APP_CONTAINER_NAME:bodaconnect-app}"
+                - equals:
+                    container.name: "${BODACONNECT_FRONTEND_CONTAINER_NAME:bodaconnect-frontend}"
+                - equals:
+                    container.name: "${BODACONNECT_DB_CONTAINER_NAME:bodaconnect-db}"
 
 setup.kibana:
   host: "kibana:5601"
