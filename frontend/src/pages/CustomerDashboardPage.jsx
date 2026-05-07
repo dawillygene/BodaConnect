@@ -24,27 +24,41 @@ export function CustomerDashboardPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        description="Track your latest requests and current ride activity."
+        description="See recent activity, understand trip status, and keep your next ride close."
         eyebrow="Customer"
-        title="Dashboard"
+        meta="Your dashboard summarizes everything from new bookings to completed trips."
+        title="Customer dashboard"
       />
 
       <div className="stats-grid">
-        <StatCard label="Total rides" value={dashboard.stats.total} />
-        <StatCard label="Pending" value={dashboard.stats.pending} />
-        <StatCard label="Completed" value={dashboard.stats.completed} />
-        <StatCard label="Cancelled" value={dashboard.stats.cancelled} />
+        <StatCard caption="All rides created from your account." label="Total rides" value={dashboard.stats.total} />
+        <StatCard caption="Requests waiting to be assigned or updated." label="Pending" value={dashboard.stats.pending} />
+        <StatCard caption="Trips that reached completion." label="Completed" value={dashboard.stats.completed} />
+        <StatCard caption="Requests cancelled before completion." label="Cancelled" value={dashboard.stats.cancelled} />
       </div>
 
-      <Panel>
-        <h3>Recent rides</h3>
+      <Panel
+        description="Your latest booking activity in chronological order."
+        title="Recent rides"
+      >
         {dashboard.recent_rides.length === 0 ? (
           <EmptyState
             description="Create your first ride request from the My Rides page."
             title="No rides yet"
           />
         ) : (
-          <div className="table-wrap">
+          <>
+            <div className="table-summary-grid">
+              <div className="table-summary-card">
+                <span className="table-summary-label">Recent activity</span>
+                <strong className="table-summary-value">{dashboard.recent_rides.length}</strong>
+              </div>
+              <div className="table-summary-card">
+                <span className="table-summary-label">Completed rides</span>
+                <strong className="table-summary-value">{dashboard.stats.completed}</strong>
+              </div>
+            </div>
+            <div className="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -58,7 +72,7 @@ export function CustomerDashboardPage() {
                 {dashboard.recent_rides.map((ride) => (
                   <tr key={ride.id}>
                     <td>#{ride.id}</td>
-                    <td>{ride.pickup_location} to {ride.destination_location}</td>
+                    <td className="route-text">{ride.pickup_location} to {ride.destination_location}</td>
                     <td><StatusBadge status={ride.status} /></td>
                     <td>{formatDate(ride.created_at)}</td>
                   </tr>
@@ -66,6 +80,7 @@ export function CustomerDashboardPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Panel>
     </div>
