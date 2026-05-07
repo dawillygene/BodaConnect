@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 const navigationByRole = {
   admin: [
@@ -17,9 +19,16 @@ const navigationByRole = {
   ],
 };
 
+const roleTitles = {
+  admin: 'Control Center',
+  customer: 'Ride Hub',
+  rider: 'Trip Desk',
+};
+
 export function AppLayout({ children }) {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   async function handleLogout() {
     await logout();
@@ -27,39 +36,81 @@ export function AppLayout({ children }) {
   }
 
   return (
-    <div className="shell">
-      <aside className="sidebar">
-        <div className="brand-block">
-          <span className="eyebrow">BodaConnect</span>
-          <h1>Operations Console</h1>
-          <p>React frontend talking to the Laravel API.</p>
-        </div>
+    <div className="app-shell">
+      <div className="shell" data-sidebar-open={isSidebarOpen}>
+        <div
+          aria-hidden="true"
+          className="sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+        />
 
-        <nav className="nav">
-          {navigationByRole[user.role].map((item) => (
-            <NavLink
-              key={item.to}
-              className={({ isActive }) =>
-                `nav-link${isActive ? ' nav-link-active' : ''}`
-              }
-              to={item.to}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <aside className="sidebar">
+          <div className="sidebar-top">
+            <div className="brand-block">
+              <span className="brand-mark">
+                <span aria-hidden="true" className="brand-mark-dot" />
+                BodaConnect
+              </span>
+              <div className="brand-copy">
+                <span className="eyebrow">{user.role}</span>
+                <h1>{roleTitles[user.role]}</h1>
+              </div>
+            </div>
 
-        <div className="user-card">
-          <span className="eyebrow">{user.role}</span>
-          <strong>{user.name}</strong>
-          <span>{user.email}</span>
-          <button className="button button-secondary" onClick={handleLogout} type="button">
-            Logout
-          </button>
-        </div>
-      </aside>
+            <nav className="nav">
+              {navigationByRole[user.role].map((item) => (
+                <NavLink
+                  key={item.to}
+                  className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
+                  onClick={() => setIsSidebarOpen(false)}
+                  to={item.to}
+                >
+                  <span aria-hidden="true" className="nav-link-bullet" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
 
-      <main className="content">{children}</main>
+          <div className="sidebar-footer">
+            <div className="user-card">
+              <div className="user-head">
+                <div className="user-meta">
+                  <strong>{user.name}</strong>
+                  <span>{user.email}</span>
+                </div>
+                <div aria-hidden="true" className="user-avatar">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              </div>
+              <div className="user-actions">
+                <button className="button button-secondary" onClick={handleLogout} type="button">
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <main className="content">
+          <div className="content-card">
+            <div className="topbar">
+              <button
+                aria-label="Open navigation"
+                className="icon-button topbar-mobile-toggle"
+                onClick={() => setIsSidebarOpen(true)}
+                type="button"
+              >
+                Menu
+              </button>
+              <div className="topbar-actions">
+                <ThemeToggle />
+              </div>
+            </div>
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
