@@ -10,5 +10,14 @@ export function formatDate(value) {
 }
 
 export function titleizeStatus(status) {
-  return status ?? 'Unknown';
+  if (!status) {
+    return 'Unknown';
+  }
+
+  return String(status)
+    .replaceAll('_', ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+    .join(' ');
 }
