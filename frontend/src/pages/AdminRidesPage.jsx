@@ -51,16 +51,31 @@ export function AdminRidesPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        description="Assign pending rides and inspect the dispatch queue."
+        description="Review incoming trips, inspect routing details, and assign riders to pending work."
         eyebrow="Admin"
+        meta="Dispatch control stays focused here so new bookings can be handled without delay."
         title="Ride management"
       />
 
-      <Panel>
+      <Panel
+        description="Every active and historical ride request, with assignment controls for pending rides."
+        title="Dispatch queue"
+      >
         {payload.rides.length === 0 ? (
           <EmptyState title="No rides found" description="Ride requests will appear here." />
         ) : (
-          <div className="table-wrap">
+          <>
+            <div className="table-summary-grid">
+              <div className="table-summary-card">
+                <span className="table-summary-label">Ride requests</span>
+                <strong className="table-summary-value">{payload.rides.length}</strong>
+              </div>
+              <div className="table-summary-card">
+                <span className="table-summary-label">Available riders</span>
+                <strong className="table-summary-value">{payload.available_riders.length}</strong>
+              </div>
+            </div>
+            <div className="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -78,7 +93,7 @@ export function AdminRidesPage() {
                   <tr key={ride.id}>
                     <td>#{ride.id}</td>
                     <td>{ride.customer?.name ?? 'Unknown'}</td>
-                    <td>{ride.pickup_location} to {ride.destination_location}</td>
+                    <td className="route-text">{ride.pickup_location} to {ride.destination_location}</td>
                     <td><StatusBadge status={ride.status} /></td>
                     <td>{ride.rider?.name ?? 'Unassigned'}</td>
                     <td>{formatDate(ride.created_at)}</td>
@@ -105,6 +120,7 @@ export function AdminRidesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Panel>
     </div>
