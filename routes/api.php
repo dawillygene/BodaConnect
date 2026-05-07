@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminMonitoringController;
 use App\Http\Controllers\Api\AdminRideController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
@@ -29,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     });
 
     Route::middleware('role:admin')->prefix('admin')->group(function (): void {
+        Route::get('/monitoring', AdminMonitoringController::class);
         Route::get('/rides', [AdminRideController::class, 'index']);
         Route::get('/rides/{rideRequest}', [AdminRideController::class, 'show']);
         Route::post('/rides/{rideRequest}/assign', [AdminRideController::class, 'assign']);
