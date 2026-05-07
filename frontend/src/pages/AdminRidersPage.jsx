@@ -4,6 +4,7 @@ import { FormField } from '../components/FormField';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
+import { StatusBadge } from '../components/StatusBadge';
 import { api } from '../lib/api';
 
 const initialForm = {
@@ -59,6 +60,23 @@ export function AdminRidersPage() {
     await loadRiders();
   }
 
+  async function updateRiderStatus(rider, status) {
+    await api.put(
+      `/admin/riders/${rider.id}`,
+      {
+        name: rider.name,
+        email: rider.email,
+        phone: rider.phone,
+        password: '',
+        password_confirmation: '',
+        status,
+      },
+      token,
+    );
+
+    await loadRiders();
+  }
+
   if (!payload) {
     return <LoadingScreen label="Loading riders" />;
   }
@@ -66,19 +84,23 @@ export function AdminRidersPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        description="Provision new riders and deactivate inactive ones."
+        description="Create rider accounts, review the current fleet, and retire inactive access."
         eyebrow="Admin"
-        title="Riders"
+        meta="This workspace keeps onboarding and fleet maintenance in one operational view."
+        title="Rider management"
       />
 
-      <Panel>
-        <h3>Create rider</h3>
+      <Panel
+        description="Add a new rider account with contact details and an initial status."
+        title="Create rider account"
+      >
         <form className="form-stack" onSubmit={createRider}>
           <div className="three-column-grid">
-            <FormField label="Name" name="name" onChange={handleChange} value={form.name} />
-            <FormField label="Email" name="email" onChange={handleChange} value={form.email} />
-            <FormField label="Phone" name="phone" onChange={handleChange} value={form.phone} />
+            <FormField autoComplete="name" label="Name" name="name" onChange={handleChange} value={form.name} />
+            <FormField autoComplete="email" label="Email" name="email" onChange={handleChange} value={form.email} />
+            <FormField autoComplete="tel" label="Phone" name="phone" onChange={handleChange} value={form.phone} />
             <FormField
+              autoComplete="new-password"
               label="Password"
               name="password"
               onChange={handleChange}
@@ -86,6 +108,7 @@ export function AdminRidersPage() {
               value={form.password}
             />
             <FormField
+              autoComplete="new-password"
               label="Confirm password"
               name="password_confirmation"
               onChange={handleChange}
@@ -104,7 +127,22 @@ export function AdminRidersPage() {
         </form>
       </Panel>
 
-      <Panel>
+      <Panel
+        description="Current rider accounts and their operating status."
+        title="Fleet roster"
+      >
+        <div className="table-summary-grid">
+          <div className="table-summary-card">
+            <span className="table-summary-label">Total riders</span>
+            <strong className="table-summary-value">{payload.data.length}</strong>
+          </div>
+          <div className="table-summary-card">
+            <span className="table-summary-label">Active riders</span>
+            <strong className="table-summary-value">
+              {payload.data.filter((rider) => rider.status === 'active').length}
+            </strong>
+          </div>
+        </div>
         <div className="table-wrap">
           <table>
             <thead>
@@ -122,7 +160,7 @@ export function AdminRidersPage() {
                   <td>{rider.name}</td>
                   <td>{rider.email}</td>
                   <td>{rider.phone}</td>
-                  <td>{rider.status}</td>
+                  <td><StatusBadge status={rider.status} /></td>
                   <td>
                     {rider.status === 'active' ? (
                       <button
@@ -133,7 +171,13 @@ export function AdminRidersPage() {
                         Deactivate
                       </button>
                     ) : (
-                      <span className="muted">Inactive</span>
+                      <button
+                        className="button button-small"
+                        onClick={() => updateRiderStatus(rider, 'active')}
+                        type="button"
+                      >
+                        Activate
+                      </button>
                     )}
                   </td>
                 </tr>
