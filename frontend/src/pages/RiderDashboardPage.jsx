@@ -55,23 +55,37 @@ export function RiderDashboardPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        description="Move assigned trips through the delivery lifecycle."
+        description="Handle assigned work, move trips forward, and keep completion records organized."
         eyebrow="Rider"
-        title="Dashboard"
+        meta="This dashboard is built for active delivery work with clear next actions."
+        title="Rider dashboard"
       />
 
       <div className="stats-grid">
-        <StatCard label="Assigned" value={dashboard.stats.assigned} />
-        <StatCard label="Completed" value={dashboard.stats.completed} />
-        <StatCard label="Total rides" value={dashboard.stats.total_rides} />
+        <StatCard caption="Trips currently waiting on rider action." label="Assigned" value={dashboard.stats.assigned} />
+        <StatCard caption="Trips fully delivered and closed out." label="Completed" value={dashboard.stats.completed} />
+        <StatCard caption="All rides handled by this rider profile." label="Total rides" value={dashboard.stats.total_rides} />
       </div>
 
-      <Panel>
-        <h3>Active trips</h3>
+      <Panel
+        description="Trips that still need to be accepted, started, or completed."
+        title="Active trips"
+      >
         {dashboard.assigned_trips.length === 0 ? (
           <EmptyState title="No active trips" description="Assigned rides will appear here." />
         ) : (
-          <div className="table-wrap">
+          <>
+            <div className="table-summary-grid">
+              <div className="table-summary-card">
+                <span className="table-summary-label">Active trips</span>
+                <strong className="table-summary-value">{dashboard.assigned_trips.length}</strong>
+              </div>
+              <div className="table-summary-card">
+                <span className="table-summary-label">Completed trips</span>
+                <strong className="table-summary-value">{dashboard.stats.completed}</strong>
+              </div>
+            </div>
+            <div className="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -87,7 +101,7 @@ export function RiderDashboardPage() {
                   <tr key={ride.id}>
                     <td>#{ride.id}</td>
                     <td>{ride.customer?.name}</td>
-                    <td>{ride.pickup_location} to {ride.destination_location}</td>
+                    <td className="route-text">{ride.pickup_location} to {ride.destination_location}</td>
                     <td><StatusBadge status={ride.status} /></td>
                     <td>
                       <button className="button button-small" onClick={() => advanceRide(ride)} type="button">
@@ -103,11 +117,14 @@ export function RiderDashboardPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Panel>
 
-      <Panel>
-        <h3>Completed trips</h3>
+      <Panel
+        description="Closed trips for quick review and reconciliation."
+        title="Completed trips"
+      >
         {dashboard.completed_trips.length === 0 ? (
           <EmptyState title="No completed rides" description="Completed rides will appear here." />
         ) : (
