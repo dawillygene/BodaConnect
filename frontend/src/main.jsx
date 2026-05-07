@@ -5,6 +5,16 @@ import App from './App.jsx';
 import { AuthProvider } from './auth/AuthContext';
 import './index.css';
 
+const storedTheme = localStorage.getItem('bodaconnect.theme');
+const initialTheme =
+  storedTheme === 'light' || storedTheme === 'dark'
+    ? storedTheme
+    : window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+
+document.documentElement.dataset.theme = initialTheme;
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
