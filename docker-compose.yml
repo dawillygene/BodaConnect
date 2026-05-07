@@ -9,11 +9,26 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USERNAME: bodaconnect
+      DB_PASSWORD: secret
     ports:
       - "8080:80"
     volumes:
-      - ./storage:/var/www/html/storage
-      - ./database:/var/www/html/database
+      - ./:/var/www/html
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: bodaconnect-frontend
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - "3000:80"
     restart: unless-stopped
 
   db:
@@ -21,15 +36,15 @@ services:
     container_name: bodaconnect-db
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_USER: bodaconnect
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
     ports:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootsecret"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -72,11 +87,20 @@ services:
     container_name: bodaconnect-metricbeat
     user: root
     depends_on:
+      app:
+        condition: service_started
+      frontend:
+        condition: service_started
       elasticsearch:
         condition: service_healthy
       kibana:
         condition: service_started
     command: ["--strict.perms=false"]
+    environment:
+      BODACONNECT_APP_CONTAINER_NAME: bodaconnect-app
+      BODACONNECT_FRONTEND_CONTAINER_NAME: bodaconnect-frontend
+      BODACONNECT_DB_CONTAINER_NAME: bodaconnect-db
+      MYSQL_MONITORING_DSN: "root:rootsecret@tcp(db:3306)/"
     volumes:
       - ./monitoring/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
       - ${XDG_RUNTIME_DIR}/podman/podman.sock:/var/run/docker.sock:ro
