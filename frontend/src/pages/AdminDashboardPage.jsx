@@ -24,24 +24,38 @@ export function AdminDashboardPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        description="High-level view of customers, riders, and ride activity."
+        description="A live view of demand, rider availability, and recent booking activity."
         eyebrow="Admin"
-        title="Dashboard"
+        meta="Use this dashboard to spot pending work quickly and keep assignments moving."
+        title="Operations dashboard"
       />
 
       <div className="stats-grid">
-        <StatCard label="Customers" value={dashboard.stats.customers} />
-        <StatCard label="Riders" value={dashboard.stats.riders} />
-        <StatCard label="Total rides" value={dashboard.stats.total_rides} />
-        <StatCard label="Pending" value={dashboard.stats.pending} />
+        <StatCard caption="Registered customers using the service." label="Customers" value={dashboard.stats.customers} />
+        <StatCard caption="Riders currently in your network." label="Riders" value={dashboard.stats.riders} />
+        <StatCard caption="All ride requests captured in the platform." label="Total rides" value={dashboard.stats.total_rides} />
+        <StatCard caption="Requests waiting for action or assignment." label="Pending" value={dashboard.stats.pending} />
       </div>
 
-      <Panel>
-        <h3>Recent rides</h3>
+      <Panel
+        description="Latest ride activity across the platform."
+        title="Recent rides"
+      >
         {dashboard.recent_rides.length === 0 ? (
           <EmptyState title="No rides found" description="Recent ride activity will appear here." />
         ) : (
-          <div className="table-wrap">
+          <>
+            <div className="table-summary-grid">
+              <div className="table-summary-card">
+                <span className="table-summary-label">Recent requests</span>
+                <strong className="table-summary-value">{dashboard.recent_rides.length}</strong>
+              </div>
+              <div className="table-summary-card">
+                <span className="table-summary-label">Pending focus</span>
+                <strong className="table-summary-value">{dashboard.stats.pending}</strong>
+              </div>
+            </div>
+            <div className="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -63,6 +77,7 @@ export function AdminDashboardPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Panel>
     </div>
