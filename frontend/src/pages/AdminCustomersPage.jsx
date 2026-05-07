@@ -4,6 +4,7 @@ import { EmptyState } from '../components/EmptyState';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
+import { StatusBadge } from '../components/StatusBadge';
 import { api } from '../lib/api';
 import { formatDate } from '../lib/formatters';
 
@@ -22,16 +23,33 @@ export function AdminCustomersPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        description="Customer records exposed by the Laravel API."
+        description="Review customer profiles, contact details, and account status."
         eyebrow="Admin"
-        title="Customers"
+        meta="Keep the customer base visible to operations when resolving support or dispatch issues."
+        title="Customer directory"
       />
 
-      <Panel>
+      <Panel
+        description="All registered customer accounts."
+        title="Customer records"
+      >
         {payload.data.length === 0 ? (
           <EmptyState title="No customers found" description="Customer accounts will appear here." />
         ) : (
-          <div className="table-wrap">
+          <>
+            <div className="table-summary-grid">
+              <div className="table-summary-card">
+                <span className="table-summary-label">Total customers</span>
+                <strong className="table-summary-value">{payload.data.length}</strong>
+              </div>
+              <div className="table-summary-card">
+                <span className="table-summary-label">Active records</span>
+                <strong className="table-summary-value">
+                  {payload.data.filter((customer) => customer.status === 'active').length}
+                </strong>
+              </div>
+            </div>
+            <div className="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -48,13 +66,14 @@ export function AdminCustomersPage() {
                     <td>{customer.name}</td>
                     <td>{customer.email}</td>
                     <td>{customer.phone}</td>
-                    <td>{customer.status}</td>
+                    <td><StatusBadge status={customer.status} /></td>
                     <td>{formatDate(customer.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Panel>
     </div>
