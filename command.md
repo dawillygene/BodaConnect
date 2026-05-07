@@ -110,3 +110,50 @@ kibana http://localhost:5601
  
 
  in order to perfom monitoring of my app to check cpu ram and storage of the my app i need to create another container for monitoring my app so please create another container for me "kibana" and configure witth my app so that i can perfom that task now
+
+
+
+
+
+
+
+
+
+
+1. On the left panel, there is a field list.
+2. Search for each field name there.
+3. Click the field.
+4. Choose Add field as column.
+
+Try these first because they are the most likely to exist:
+
+@timestamp
+container.name
+event.module
+host.name
+docker.container.name
+docker.container.image
+
+Then try these if present:
+
+
+
+
+
+
+- system module: CPU, load, memory, network, process, filesystem, disk I/O for the host.
+- docker module: container CPU, memory, network, health, disk I/O.
+
+
+
+
+
+
+
+
+Useful Commands:
+
+
+docker network create bodaconnect-net
+
+docker compose up -d --force-recreate app metricbeat
