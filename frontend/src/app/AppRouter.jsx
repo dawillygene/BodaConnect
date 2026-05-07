@@ -38,7 +38,7 @@ function ProtectedRoute({ children, roles }) {
   const { isLoading, user } = useAuth();
 
   if (isLoading) {
-    return <LoadingScreen label="Checking session" />;
+    return <LoadingScreen label="Checking your session and permissions." />;
   }
 
   if (!user) {
@@ -56,7 +56,7 @@ function GuestRoute({ children }) {
   const { isLoading, user } = useAuth();
 
   if (isLoading) {
-    return <LoadingScreen label="Loading app" />;
+    return <LoadingScreen label="Loading the sign-in experience." />;
   }
 
   if (user) {
