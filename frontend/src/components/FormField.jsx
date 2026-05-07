@@ -1,4 +1,5 @@
 export function FormField({
+  autoComplete,
   label,
   name,
   onChange,
@@ -10,6 +11,7 @@ export function FormField({
     <label className="field">
       <span>{label}</span>
       <input
+        autoComplete={autoComplete}
         className="input"
         name={name}
         onChange={onChange}
