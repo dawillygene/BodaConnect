@@ -91,8 +91,8 @@ jobs:
           push: true
           tags: |
             ${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.BACKEND_IMAGE }}:v1
             ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-            ${{ env.BACKEND_IMAGE }}:v${{ github.run_number }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -101,8 +101,8 @@ jobs:
           push: true
           tags: |
             ${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.FRONTEND_IMAGE }}:v1
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-            ${{ env.FRONTEND_IMAGE }}:v${{ github.run_number }}
 
   deploy-staging:
     name: Deploy to Staging
@@ -154,6 +154,29 @@ jobs:
           curl --fail --silent --show-error "http://ec2-16-171-25-187.eu-north-1.compute.amazonaws.com:8080/up" > /dev/null
           curl --fail --silent --show-error "http://ec2-16-171-25-187.eu-north-1.compute.amazonaws.com:3000/" > /dev/null
 
+      - name: Collect staging Docker evidence
+        run: |
+          ssh -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" \
+            "cd ~/bodaconnect \
+            && echo '=== docker images ===' \
+            && docker images | grep bodaconnect || true \
+            && echo '=== docker ps ===' \
+            && docker ps \
+            && echo '=== docker stats ===' \
+            && docker stats --no-stream \
+            && echo '=== app logs ===' \
+            && docker logs --tail=50 bodaconnect-app \
+            && echo '=== frontend logs ===' \
+            && docker logs --tail=50 bodaconnect-frontend \
+            && echo '=== db logs ===' \
+            && docker logs --tail=50 bodaconnect-db \
+            && echo '=== elasticsearch logs ===' \
+            && docker logs --tail=50 bodaconnect-elasticsearch \
+            && echo '=== kibana logs ===' \
+            && docker logs --tail=50 bodaconnect-kibana \
+            && echo '=== metricbeat logs ===' \
+            && docker logs --tail=50 bodaconnect-metricbeat"
+
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -203,3 +226,26 @@ jobs:
           sleep 30
           curl --fail --silent --show-error "http://ec2-51-20-191-160.eu-north-1.compute.amazonaws.com:8080/up" > /dev/null
           curl --fail --silent --show-error "http://ec2-51-20-191-160.eu-north-1.compute.amazonaws.com:3000/" > /dev/null
+
+      - name: Collect production Docker evidence
+        run: |
+          ssh -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}" \
+            "cd ~/bodaconnect \
+            && echo '=== docker images ===' \
+            && docker images | grep bodaconnect || true \
+            && echo '=== docker ps ===' \
+            && docker ps \
+            && echo '=== docker stats ===' \
+            && docker stats --no-stream \
+            && echo '=== app logs ===' \
+            && docker logs --tail=50 bodaconnect-app \
+            && echo '=== frontend logs ===' \
+            && docker logs --tail=50 bodaconnect-frontend \
+            && echo '=== db logs ===' \
+            && docker logs --tail=50 bodaconnect-db \
+            && echo '=== elasticsearch logs ===' \
+            && docker logs --tail=50 bodaconnect-elasticsearch \
+            && echo '=== kibana logs ===' \
+            && docker logs --tail=50 bodaconnect-kibana \
+            && echo '=== metricbeat logs ===' \
+            && docker logs --tail=50 bodaconnect-metricbeat"
