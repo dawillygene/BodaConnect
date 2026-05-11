@@ -23,7 +23,7 @@ class AdminRiderManagementTest extends TestCase
 
         Sanctum::actingAs($admin);
 
-        $response = $this->putJson("/pi/admin/riders/{$rider->id}", [
+        $response = $this->putJson("/api/admin/riders/{$rider->id}", [
             'name' => $rider->name,
             'email' => $rider->email,
             'phone' => $rider->phone,
@@ -34,7 +34,7 @@ class AdminRiderManagementTest extends TestCase
             ->assertOk()
             ->assertJsonPath('rider.status', 'active');
 
-        $this->assertDatabaseHas('sers', [
+        $this->assertDatabaseHas('users', [
             'id' => $rider->id,
             'status' => 'active',
         ]);
