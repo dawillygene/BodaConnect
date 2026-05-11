@@ -201,5 +201,5 @@ jobs:
       - name: Verify production deployment
         run: |
           sleep 30
-          curl --fail --silent --show-error "https://ec2-51-20-191-160.eu-north-1.compute.amazonaws.com:8080/" > /dev/null
-          curl --fail --silent --show-error "https://ec2-51-20-191-160.eu-north-1.compute.amazonaws.com:3000/" > /dev/null
+          curl --fail --silent --show-error "http://ec2-51-20-191-160.eu-north-1.compute.amazonaws.com:8080/up" > /dev/null
+          curl --fail --silent --show-error "http://ec2-51-20-191-160.eu-north-1.compute.amazonaws.com:3000/" > /dev/null
