@@ -157,3 +157,25 @@ Useful Commands:
 docker network create bodaconnect-net
 
 docker compose up -d --force-recreate app metricbeat
+
+
+
+
+docker stop $(docker ps -q)
+
+
+docker rm -f $(docker ps -q)
+
+
+
+
+
+
+
+
+
+
+build and push to the docker 
+$docker build --target app -t confidehub/bodaconnect-app:latest .
+
+docker tag confidehub/bodaconnect-app:latest confidehub/bodaconnect-app:v1
