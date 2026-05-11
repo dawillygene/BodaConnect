@@ -151,7 +151,7 @@ jobs:
       - name: Verify staging deployment
         run: |
           sleep 30
-          curl --fail --silent --show-error "http://ec2-16-171-25-187.eu-north-1.compute.amazonaws.com:8080/" > /dev/null
+          curl --fail --silent --show-error "http://ec2-16-171-25-187.eu-north-1.compute.amazonaws.com:8080/up" > /dev/null
           curl --fail --silent --show-error "http://ec2-16-171-25-187.eu-north-1.compute.amazonaws.com:3000/" > /dev/null
 
   deploy-production:
