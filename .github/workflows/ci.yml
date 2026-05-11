@@ -1,0 +1,63 @@
+name: BodaConnect CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  test-and-build:
+    name: Run Tests and Build Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, bcmath, pdo, pdo_mysql, xml, curl, zip, gd
+          coverage: none
+
+      - name: Copy Laravel environment file
+        run: |
+          if [ ! -f .env ]; then
+            cp .env.example .env
+          fi
+
+      - name: Install backend dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Run backend tests
+        run: php artisan test --compact
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Build backend Docker image
+        run: docker build --target app -t confidehub/bodaconnect-app:ci .
+
+      - name: Build frontend Docker image
+        run: docker build -t confidehub/bodaconnect-frontend:ci ./frontend
