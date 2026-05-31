@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\RideStatusUpdated;
 use App\Models\RideRequest;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -11,13 +12,19 @@ class RideRequestService
 {
     public function createForCustomer(User $customer, array $data): RideRequest
     {
-        return RideRequest::query()->create([
+        $rideRequest = RideRequest::query()->create([
             'customer_id' => $customer->id,
             'pickup_location' => $data['pickup_location'],
             'destination_location' => $data['destination_location'],
             'notes' => $data['notes'] ?? null,
             'status' => 'Pending',
         ]);
+
+        $rideRequest->refresh();
+
+        RideStatusUpdated::dispatch($rideRequest);
+
+        return $rideRequest;
     }
 
     public function cancelByCustomer(User $customer, RideRequest $rideRequest): RideRequest
@@ -36,6 +43,9 @@ class RideRequestService
 
         $rideRequest->status = 'Cancelled';
         $rideRequest->save();
+        $rideRequest->refresh();
+
+        RideStatusUpdated::dispatch($rideRequest);
 
         return $rideRequest;
     }
