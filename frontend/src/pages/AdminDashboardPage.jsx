@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingScreen } from '../components/LoadingScreen';
@@ -8,14 +8,24 @@ import { StatCard } from '../components/StatCard';
 import { StatusBadge } from '../components/StatusBadge';
 import { api } from '../lib/api';
 import { formatDate } from '../lib/formatters';
+import { subscribeToAdminRideStatusUpdates } from '../lib/status-stream';
 
 export function AdminDashboardPage() {
   const { token } = useAuth();
   const [dashboard, setDashboard] = useState(null);
 
+  const loadDashboard = useEffectEvent(async () => {
+    const response = await api.get('/dashboard', token);
+    setDashboard(response.dashboard);
+  });
+
   useEffect(() => {
-    api.get('/dashboard', token).then((response) => setDashboard(response.dashboard));
-  }, [token]);
+    loadDashboard();
+  }, [loadDashboard, token]);
+
+  useEffect(() => {
+    return subscribeToAdminRideStatusUpdates(loadDashboard);
+  }, [loadDashboard]);
 
   if (!dashboard) {
     return <LoadingScreen label="Loading admin dashboard" />;
@@ -56,27 +66,29 @@ export function AdminDashboardPage() {
               </div>
             </div>
             <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Customer</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dashboard.recent_rides.map((ride) => (
-                  <tr key={ride.id}>
-                    <td>#{ride.id}</td>
-                    <td>{ride.customer?.name ?? 'Unknown'}</td>
-                    <td><StatusBadge status={ride.status} /></td>
-                    <td>{formatDate(ride.created_at)}</td>
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Customer</th>
+                    <th>Status</th>
+                    <th>Created</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {dashboard.recent_rides.map((ride) => (
+                    <tr key={ride.id}>
+                      <td>#{ride.id}</td>
+                      <td>{ride.customer?.name ?? 'Unknown'}</td>
+                      <td>
+                        <StatusBadge status={ride.status} />
+                      </td>
+                      <td>{formatDate(ride.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </Panel>
