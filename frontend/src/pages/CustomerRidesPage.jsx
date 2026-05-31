@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { EmptyState } from '../components/EmptyState';
 import { FormField } from '../components/FormField';
@@ -8,6 +8,7 @@ import { Panel } from '../components/Panel';
 import { StatusBadge } from '../components/StatusBadge';
 import { api } from '../lib/api';
 import { formatDate } from '../lib/formatters';
+import { subscribeToRideStatusUpdates } from '../lib/status-stream';
 
 const initialForm = {
   pickup_location: '',
@@ -16,7 +17,7 @@ const initialForm = {
 };
 
 export function CustomerRidesPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [rides, setRides] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState('');
@@ -26,6 +27,26 @@ export function CustomerRidesPage() {
     const response = await api.get('/rides', token);
     setRides(response.rides);
   }
+
+  const handleRideStatusUpdate = useEffectEvent((statusUpdate) => {
+    setRides((currentRides) => {
+      if (!currentRides) {
+        return currentRides;
+      }
+
+      return currentRides.map((ride) =>
+        ride.id === statusUpdate.ride_id
+          ? {
+              ...ride,
+              status: statusUpdate.status,
+              rider_id: statusUpdate.rider_id,
+              rider: statusUpdate.rider ?? ride.rider,
+              updated_at: statusUpdate.updated_at,
+            }
+          : ride,
+      );
+    });
+  });
 
   useEffect(() => {
     let ignore = false;
@@ -44,6 +65,10 @@ export function CustomerRidesPage() {
       ignore = true;
     };
   }, [token]);
+
+  useEffect(() => {
+    return subscribeToRideStatusUpdates(user?.id, handleRideStatusUpdate);
+  }, [handleRideStatusUpdate, user?.id]);
 
   function handleChange(event) {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -140,41 +165,45 @@ export function CustomerRidesPage() {
               </div>
             </div>
             <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Route</th>
-                  <th>Status</th>
-                  <th>Rider</th>
-                  <th>Created</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rides.map((ride) => (
-                  <tr key={ride.id}>
-                    <td>#{ride.id}</td>
-                    <td className="route-text">{ride.pickup_location} to {ride.destination_location}</td>
-                    <td><StatusBadge status={ride.status} /></td>
-                    <td>{ride.rider?.name ?? 'Unassigned'}</td>
-                    <td>{formatDate(ride.created_at)}</td>
-                    <td>
-                      {ride.status === 'Pending' ? (
-                        <button
-                          className="button button-secondary button-small"
-                          onClick={() => cancelRide(ride.id)}
-                          type="button"
-                        >
-                          Cancel
-                        </button>
-                      ) : null}
-                    </td>
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Route</th>
+                    <th>Status</th>
+                    <th>Rider</th>
+                    <th>Created</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {rides.map((ride) => (
+                    <tr key={ride.id}>
+                      <td>#{ride.id}</td>
+                      <td className="route-text">
+                        {ride.pickup_location} to {ride.destination_location}
+                      </td>
+                      <td>
+                        <StatusBadge status={ride.status} />
+                      </td>
+                      <td>{ride.rider?.name ?? 'Unassigned'}</td>
+                      <td>{formatDate(ride.created_at)}</td>
+                      <td>
+                        {ride.status === 'Pending' ? (
+                          <button
+                            className="button button-secondary button-small"
+                            onClick={() => cancelRide(ride.id)}
+                            type="button"
+                          >
+                            Cancel
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </Panel>
