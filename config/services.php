@@ -42,4 +42,18 @@ return [
         'database_metric_module' => env('MONITORING_DATABASE_METRIC_MODULE', 'mysql'),
     ],
 
+    'mqtt' => [
+        'enabled' => env('MQTT_ENABLED', true),
+        'host' => env('MQTT_HOST', '127.0.0.1'),
+        'port' => env('MQTT_PORT', 1883),
+        'client_id_prefix' => env('MQTT_CLIENT_ID_PREFIX', 'bodaconnect-backend'),
+        'connect_timeout' => env('MQTT_CONNECT_TIMEOUT', 1),
+        'socket_timeout' => env('MQTT_SOCKET_TIMEOUT', 1),
+        'keep_alive_interval' => env('MQTT_KEEP_ALIVE_INTERVAL', 60),
+        'topics' => [
+            'ride_status' => env('MQTT_TOPIC_RIDE_STATUS', 'ride/status'),
+            'admin_ride_status' => env('MQTT_TOPIC_ADMIN_RIDE_STATUS', 'ride/status/admin'),
+        ],
+    ],
+
 ];
