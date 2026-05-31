@@ -1,0 +1,19 @@
+{
+  "name": "status-stream",
+  "version": "1.0.0",
+  "description": "MQTT status stream examples for BodaConnect",
+  "main": "driver_status_publisher.js",
+  "scripts": {
+    "publish": "node driver_status_publisher.js",
+    "subscribe": "node passenger_status_subscriber.js"
+  },
+  "keywords": [
+    "mqtt",
+    "rides",
+    "bodaconnect"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "mqtt": "^5.15.1"
+  }
+}
