@@ -1,91 +1,207 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# BodaConnect
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+BodaConnect is a role-based ride request and dispatch platform built with Laravel and React. It supports customer ride booking, admin dispatch operations, rider trip execution, monitoring with Elastic, and live ride status updates over MQTT.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Backend: Laravel 13, PHP 8.4, Sanctum, MySQL
+- Frontend: React 19, Vite, React Router
+- Realtime: Mosquitto MQTT over TCP and WebSockets
+- Monitoring: Elasticsearch, Kibana, Metricbeat
+- Containers: Docker Compose
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Main features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Customers can create rides, cancel pending rides, and review ride history.
+- Admins can monitor demand, view ride activity, manage riders, and assign pending rides.
+- Riders can accept, start, and complete assigned trips.
+- Customer and admin dashboards receive live ride updates through MQTT.
+- Monitoring dashboards are available through Kibana.
 
-## Learning Laravel
+## Roles
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Customer
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- Create ride requests
+- View recent rides and ride history
+- Cancel pending rides
+- Receive live status updates when rides are assigned or progress changes
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### Admin
 
-## Agentic Development
+- View dashboard metrics and recent ride activity
+- Review all ride requests
+- Assign riders to pending rides
+- Manage rider and customer accounts
+- Receive live updates when new rides are created or existing rides change
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### Rider
+
+- View assigned and active trips
+- Accept assigned rides
+- Start rides
+- Complete rides
+
+## Local development
+
+### Backend
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Laravel runs on:
 
-## Contributing
+```text
+http://127.0.0.1:8000
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Frontend
 
-## Code of Conduct
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Vite runs on:
 
-## Security Vulnerabilities
+```text
+http://127.0.0.1:5173
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+The frontend proxies API traffic to Laravel on port `8000` and MQTT WebSocket traffic to `/mqtt`.
 
-## License
+## Docker stack
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# BodaConnect
+Start the local container stack with:
+
+```bash
+docker compose up -d --build
+```
+
+Services:
+
+- Backend API: `http://localhost:8080`
+- Frontend: `http://localhost:3000`
+- MySQL: `127.0.0.1:3307`
+- Elasticsearch: `http://localhost:9200`
+- Kibana: `http://localhost:5601`
+
+The stack includes:
+
+- `app`
+- `frontend`
+- `db`
+- `mqtt-broker`
+- `elasticsearch`
+- `kibana`
+- `metricbeat`
+
+## MQTT live updates
+
+BodaConnect uses MQTT for live ride status synchronization.
+
+Customer updates are published to:
+
+```text
+ride/status/{customerId}
+```
+
+Admin updates are published to:
+
+```text
+ride/status/admin
+```
+
+Default MQTT settings are defined in `.env.example`:
+
+```env
+MQTT_ENABLED=true
+MQTT_HOST=127.0.0.1
+MQTT_PORT=1883
+MQTT_CLIENT_ID_PREFIX=bodaconnect-backend
+MQTT_CONNECT_TIMEOUT=1
+MQTT_SOCKET_TIMEOUT=1
+MQTT_KEEP_ALIVE_INTERVAL=60
+MQTT_TOPIC_RIDE_STATUS=ride/status
+MQTT_TOPIC_ADMIN_RIDE_STATUS=ride/status/admin
+```
+
+The local broker also exposes WebSockets on port `9001`.
 
 ## Monitoring
 
 This project includes an Elastic monitoring stack for container and host metrics:
 
-- `elasticsearch` stores the metrics
-- `kibana` provides dashboards at `http://localhost:5601`
-- `metricbeat` collects CPU, memory, disk, and Docker container metrics
-- Docker metrics are narrowed to `bodaconnect-app` so Kibana focuses on your application container
-- On rootless Podman, Metricbeat reads the Podman API socket from `${XDG_RUNTIME_DIR}/podman/podman.sock`
+- `elasticsearch` stores metrics
+- `kibana` provides dashboards
+- `metricbeat` collects host, container, and MySQL metrics
+- `mqtt-broker` is included in the runtime stack alongside the app services
 
-Start everything with:
+Open Kibana at:
 
-```bash
-docker compose up -d
+```text
+http://localhost:5601
 ```
 
-Then open Kibana and go to:
+Then check:
 
 ```text
 Analytics -> Dashboards
 ```
 
-or
+or:
 
 ```text
 Observability -> Infrastructure
 ```
 
-to inspect metrics for `bodaconnect-app` and the host machine.
+Filter by container names such as:
 
-Metricbeat also loads the built-in Kibana dashboards automatically on startup. After Kibana is ready, look for dashboards containing `Metricbeat` and filter by container name `bodaconnect-app` if needed.
+- `bodaconnect-app`
+- `bodaconnect-frontend`
+- `bodaconnect-db`
+- `bodaconnect-mqtt`
+
+## API summary
+
+Important API areas:
+
+- Auth: `/api/auth/*`
+- Customer rides: `/api/rides`
+- Rider rides: `/api/rider/rides`
+- Admin rides: `/api/admin/rides`
+- Dashboard: `/api/dashboard`
+
+## Testing
+
+Run the Laravel test suite with:
+
+```bash
+php artisan test --compact
+```
+
+Run the frontend production build with:
+
+```bash
+cd frontend
+npm run build
+```
+
+## Deployment notes
+
+- Run `php artisan optimize` during production deployment.
+- Run `php artisan event:cache` in production to cache discovered event listeners.
+- Restart long-running queue workers after deployment if queue processing is enabled.
+
+## Default seeded admin
+
+After seeding, the default admin account is:
+
+- Email: `admin@bodaconnect.test`
+- Password: `password`
