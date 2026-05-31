@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\RideStatusUpdated;
 use App\Models\RideRequest;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
@@ -31,6 +32,9 @@ class AdminRideService
         $rideRequest->rider_id = $rider->id;
         $rideRequest->status = 'Assigned';
         $rideRequest->save();
+        $rideRequest->refresh();
+
+        RideStatusUpdated::dispatch($rideRequest);
 
         return $rideRequest;
     }
