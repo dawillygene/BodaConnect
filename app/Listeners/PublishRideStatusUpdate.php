@@ -50,6 +50,7 @@ class PublishRideStatusUpdate
      *     status: string,
      *     pickup_location: string,
      *     destination_location: string,
+     *     created_at: string|null,
      *     updated_at: string|null
      * }
      */
@@ -68,6 +69,7 @@ class PublishRideStatusUpdate
             'status' => $rideRequest->status,
             'pickup_location' => $rideRequest->pickup_location,
             'destination_location' => $rideRequest->destination_location,
+            'created_at' => $rideRequest->created_at?->toISOString(),
             'updated_at' => $rideRequest->updated_at?->toISOString(),
         ];
     }

@@ -128,9 +128,9 @@ services:
   mqtt-broker:
     image: eclipse-mosquitto:2
     container_name: bodaconnect-mqtt
-    expose:
-      - "1883"
-      - "9001"
+    ports:
+      - "1883:1883"
+      - "9001:9001"
     volumes:
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     restart: unless-stopped

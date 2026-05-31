@@ -136,6 +136,7 @@ class RideStatusUpdateTest extends TestCase
                             && $payload['status'] === 'Accepted'
                             && $payload['pickup_location'] === $rideRequest->pickup_location
                             && $payload['destination_location'] === $rideRequest->destination_location
+                            && $payload['created_at'] === $rideRequest->created_at?->toISOString()
                             && $payload['updated_at'] === $rideRequest->updated_at?->toISOString();
                     }),
                 );
@@ -153,6 +154,7 @@ class RideStatusUpdateTest extends TestCase
                             && $payload['status'] === 'Accepted'
                             && $payload['pickup_location'] === $rideRequest->pickup_location
                             && $payload['destination_location'] === $rideRequest->destination_location
+                            && $payload['created_at'] === $rideRequest->created_at?->toISOString()
                             && $payload['updated_at'] === $rideRequest->updated_at?->toISOString();
                     }),
                 );

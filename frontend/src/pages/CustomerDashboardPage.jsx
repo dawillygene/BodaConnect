@@ -22,6 +22,43 @@ export function CustomerDashboardPage() {
 
       const existingRide = currentDashboard.recent_rides.find((ride) => ride.id === statusUpdate.ride_id);
 
+      const stats = { ...currentDashboard.stats };
+
+      if (!existingRide) {
+        const newRide = {
+          id: statusUpdate.ride_id,
+          customer_id: statusUpdate.customer_id,
+          rider_id: statusUpdate.rider_id,
+          rider: statusUpdate.rider,
+          status: statusUpdate.status,
+          pickup_location: statusUpdate.pickup_location,
+          destination_location: statusUpdate.destination_location,
+          created_at: statusUpdate.created_at ?? statusUpdate.updated_at,
+          updated_at: statusUpdate.updated_at,
+        };
+
+        if (statusUpdate.status === 'Pending') {
+          stats.pending += 1;
+        }
+
+        if (statusUpdate.status === 'Completed') {
+          stats.completed += 1;
+        }
+
+        if (statusUpdate.status === 'Cancelled') {
+          stats.cancelled += 1;
+        }
+
+        return {
+          ...currentDashboard,
+          stats: {
+            ...stats,
+            total: stats.total + 1,
+          },
+          recent_rides: [newRide, ...currentDashboard.recent_rides].slice(0, 5),
+        };
+      }
+
       const recentRides = currentDashboard.recent_rides.map((ride) =>
         ride.id === statusUpdate.ride_id
           ? {
@@ -33,15 +70,6 @@ export function CustomerDashboardPage() {
             }
           : ride,
       );
-
-      if (!existingRide) {
-        return {
-          ...currentDashboard,
-          recent_rides: recentRides,
-        };
-      }
-
-      const stats = { ...currentDashboard.stats };
 
       if (existingRide.status === 'Pending' && statusUpdate.status !== 'Pending') {
         stats.pending = Math.max(0, stats.pending - 1);
