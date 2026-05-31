@@ -7,6 +7,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mqtt-broker:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -14,6 +16,10 @@ services:
       DB_PORT: 3306
       DB_USERNAME: bodaconnect
       DB_PASSWORD: secret
+      MQTT_ENABLED: ${MQTT_ENABLED:-true}
+      MQTT_HOST: mqtt-broker
+      MQTT_PORT: 1883
+      MQTT_TOPIC_RIDE_STATUS: ${MQTT_TOPIC_RIDE_STATUS:-ride/status}
     ports:
       - "8080:80"
     volumes:
@@ -26,6 +32,8 @@ services:
     container_name: bodaconnect-frontend
     depends_on:
       app:
+        condition: service_started
+      mqtt-broker:
         condition: service_started
     ports:
       - "3000:80"
@@ -115,6 +123,16 @@ services:
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /proc:/hostfs/proc:ro
       - /:/hostfs:ro
+    restart: unless-stopped
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: bodaconnect-mqtt
+    expose:
+      - "1883"
+      - "9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     restart: unless-stopped
 
 volumes:
