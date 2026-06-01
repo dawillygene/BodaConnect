@@ -118,26 +118,43 @@ jobs:
 
       - name: Prepare SSH key for staging
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/staging_key
+          install -m 700 -d ~/.ssh
+          printf '%s' "${{ secrets.STAGING_SSH_KEY }}" | tr -d '\r' > ~/.ssh/staging_key
           chmod 600 ~/.ssh/staging_key
-          ssh-keyscan -H "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts
+          touch ~/.ssh/known_hosts
+
+          staging_host='${{ secrets.STAGING_HOST }}'
+          staging_port='22'
+
+          if [[ "${staging_host}" == *:* && "${staging_host}" != \[* ]]; then
+            staging_port="${staging_host##*:}"
+            staging_host="${staging_host%:*}"
+          fi
+
+          echo "STAGING_SSH_HOST=${staging_host}" >> "${GITHUB_ENV}"
+          echo "STAGING_SSH_PORT=${staging_port}" >> "${GITHUB_ENV}"
+
+          if ! ssh-keyscan -p "${staging_port}" -H "${staging_host}" >> ~/.ssh/known_hosts 2>/dev/null; then
+            echo "Unable to fetch the SSH host key for staging (${staging_host}:${staging_port})."
+            echo "Verify STAGING_HOST is correct and reachable from GitHub Actions."
+            exit 1
+          fi
 
       - name: Copy deployment files to staging server
         run: |
-          ssh -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" "mkdir -p ~/bodaconnect/monitoring"
-          scp -i ~/.ssh/staging_key docker-compose.deploy.yml "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:~/bodaconnect/docker-compose.deploy.yml"
-          scp -i ~/.ssh/staging_key -r monitoring/* "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:~/bodaconnect/monitoring/" || true
+          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" "mkdir -p ~/bodaconnect/monitoring"
+          scp -P "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key docker-compose.deploy.yml "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}:~/bodaconnect/docker-compose.deploy.yml"
+          scp -P "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key -r monitoring/* "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}:~/bodaconnect/monitoring/" || true
 
       - name: Write staging environment file
         run: |
-          ssh -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" "cat > ~/bodaconnect/.env" <<'EOF'
+          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" "cat > ~/bodaconnect/.env" <<'EOF'
           ${{ secrets.STAGING_ENV_FILE }}
           EOF
 
       - name: Deploy application to staging
         run: |
-          ssh -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" \
+          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
             "cd ~/bodaconnect \
             && export BACKEND_IMAGE='${{ env.BACKEND_IMAGE }}' \
             && export FRONTEND_IMAGE='${{ env.FRONTEND_IMAGE }}' \
@@ -156,7 +173,7 @@ jobs:
 
       - name: Collect staging Docker evidence
         run: |
-          ssh -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" \
+          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
             "cd ~/bodaconnect \
             && echo '=== docker images ===' \
             && docker images | grep bodaconnect || true \
@@ -191,26 +208,43 @@ jobs:
 
       - name: Prepare SSH key for production
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/production_key
+          install -m 700 -d ~/.ssh
+          printf '%s' "${{ secrets.PRODUCTION_SSH_KEY }}" | tr -d '\r' > ~/.ssh/production_key
           chmod 600 ~/.ssh/production_key
-          ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
+          touch ~/.ssh/known_hosts
+
+          production_host='${{ secrets.PRODUCTION_HOST }}'
+          production_port='22'
+
+          if [[ "${production_host}" == *:* && "${production_host}" != \[* ]]; then
+            production_port="${production_host##*:}"
+            production_host="${production_host%:*}"
+          fi
+
+          echo "PRODUCTION_SSH_HOST=${production_host}" >> "${GITHUB_ENV}"
+          echo "PRODUCTION_SSH_PORT=${production_port}" >> "${GITHUB_ENV}"
+
+          if ! ssh-keyscan -p "${production_port}" -H "${production_host}" >> ~/.ssh/known_hosts 2>/dev/null; then
+            echo "Unable to fetch the SSH host key for production (${production_host}:${production_port})."
+            echo "Verify PRODUCTION_HOST is correct and reachable from GitHub Actions."
+            exit 1
+          fi
 
       - name: Copy deployment files to production server
         run: |
-          ssh -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}" "mkdir -p ~/bodaconnect/monitoring"
-          scp -i ~/.ssh/production_key docker-compose.deploy.yml "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:~/bodaconnect/docker-compose.deploy.yml"
-          scp -i ~/.ssh/production_key -r monitoring/* "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:~/bodaconnect/monitoring/" || true
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" "mkdir -p ~/bodaconnect/monitoring"
+          scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key docker-compose.deploy.yml "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:~/bodaconnect/docker-compose.deploy.yml"
+          scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key -r monitoring/* "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:~/bodaconnect/monitoring/" || true
 
       - name: Write production environment file
         run: |
-          ssh -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}" "cat > ~/bodaconnect/.env" <<'EOF'
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" "cat > ~/bodaconnect/.env" <<'EOF'
           ${{ secrets.PRODUCTION_ENV_FILE }}
           EOF
 
       - name: Deploy application to production
         run: |
-          ssh -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}" \
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
             "cd ~/bodaconnect \
             && export BACKEND_IMAGE='${{ env.BACKEND_IMAGE }}' \
             && export FRONTEND_IMAGE='${{ env.FRONTEND_IMAGE }}' \
@@ -229,7 +263,7 @@ jobs:
 
       - name: Collect production Docker evidence
         run: |
-          ssh -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}" \
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
             "cd ~/bodaconnect \
             && echo '=== docker images ===' \
             && docker images | grep bodaconnect || true \
