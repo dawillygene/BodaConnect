@@ -54,6 +54,7 @@ return [
         'topics' => [
             'ride_status' => env('MQTT_TOPIC_RIDE_STATUS', 'ride/status'),
             'admin_ride_status' => env('MQTT_TOPIC_ADMIN_RIDE_STATUS', 'ride/status/admin'),
+            'rider_ride_status' => env('MQTT_TOPIC_RIDER_RIDE_STATUS', 'ride/status/rider'),
         ],
     ],
 
