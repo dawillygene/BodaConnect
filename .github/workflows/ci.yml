@@ -1,10 +1,12 @@
-name: BodaConnect CI/CD Pipeline
+name: 1. Code Push - BodaConnect CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
       - master
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
@@ -16,9 +18,52 @@ env:
   FRONTEND_IMAGE: confidehub/bodaconnect-frontend
 
 jobs:
-  ci:
-    name: Continuous Integration
+  build-application:
+    name: 2. Build Application
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, bcmath, pdo, pdo_mysql, pdo_sqlite, sqlite3, xml, curl, zip, gd
+          coverage: none
+
+      - name: Copy Laravel environment file
+        run: |
+          if [ ! -f .env ]; then
+            cp .env.example .env
+          fi
+
+      - name: Install backend dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend application
+        working-directory: frontend
+        run: npm run build
+
+  run-tests:
+    name: 3. Run Tests
+    runs-on: ubuntu-latest
+    needs: build-application
 
     steps:
       - name: Checkout repository
@@ -46,20 +91,14 @@ jobs:
       - name: Run backend tests
         run: php artisan test --compact
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+  build-docker-image:
+    name: 4. Build Docker Image
+    runs-on: ubuntu-latest
+    needs: run-tests
 
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Build backend Docker image for CI
         run: docker build --target app -t $BACKEND_IMAGE:ci .
@@ -67,10 +106,10 @@ jobs:
       - name: Build frontend Docker image for CI
         run: docker build -t $FRONTEND_IMAGE:ci ./frontend
 
-  build-and-push:
-    name: Build and Push Docker Images
+  push-to-docker-hub:
+    name: 5. Push to Docker Hub (Third-party)
     runs-on: ubuntu-latest
-    needs: ci
+    needs: build-docker-image
     if: github.event_name == 'push'
 
     steps:
@@ -83,6 +122,22 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Determine Docker image tags
+        id: docker_tags
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            release_tag="${GITHUB_REF_NAME}"
+          else
+            release_tag="v1.0.${GITHUB_RUN_NUMBER}"
+          fi
+
+          major_minor_tag="$(printf '%s\n' "${release_tag}" | sed -E 's/^(v[0-9]+\.[0-9]+).*/\1/')"
+
+          {
+            echo "release_tag=${release_tag}"
+            echo "major_minor_tag=${major_minor_tag}"
+          } >> "${GITHUB_OUTPUT}"
+
       - name: Build and push backend image
         uses: docker/build-push-action@v6
         with:
@@ -91,7 +146,8 @@ jobs:
           push: true
           tags: |
             ${{ env.BACKEND_IMAGE }}:latest
-            ${{ env.BACKEND_IMAGE }}:v1
+            ${{ env.BACKEND_IMAGE }}:${{ steps.docker_tags.outputs.major_minor_tag }}
+            ${{ env.BACKEND_IMAGE }}:${{ steps.docker_tags.outputs.release_tag }}
             ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
 
       - name: Build and push frontend image
@@ -101,16 +157,20 @@ jobs:
           push: true
           tags: |
             ${{ env.FRONTEND_IMAGE }}:latest
-            ${{ env.FRONTEND_IMAGE }}:v1
+            ${{ env.FRONTEND_IMAGE }}:${{ steps.docker_tags.outputs.major_minor_tag }}
+            ${{ env.FRONTEND_IMAGE }}:${{ steps.docker_tags.outputs.release_tag }}
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
 
   deploy-staging:
-    name: Deploy to Staging
+    name: 6. Deploy to Server / Cloud (Staging)
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: push-to-docker-hub
     if: github.event_name == 'push'
     environment:
       name: staging
+    env:
+      DEPLOY_DIRECTORY: ~/apps/bodaconnect/staging
+      DEPLOY_PROJECT_NAME: bodaconnect-staging
 
     steps:
       - name: Checkout repository
@@ -142,20 +202,22 @@ jobs:
 
       - name: Copy deployment files to staging server
         run: |
-          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" "mkdir -p ~/bodaconnect/monitoring"
-          scp -P "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key docker-compose.deploy.yml "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}:~/bodaconnect/docker-compose.deploy.yml"
-          scp -P "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key -r monitoring/* "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}:~/bodaconnect/monitoring/" || true
+          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" "mkdir -p ${DEPLOY_DIRECTORY}/monitoring"
+          scp -P "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key docker-compose.deploy.yml "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}:${DEPLOY_DIRECTORY}/docker-compose.deploy.yml"
+          scp -P "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key mosquitto.conf "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}:${DEPLOY_DIRECTORY}/mosquitto.conf"
+          scp -P "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key -r monitoring/* "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}:${DEPLOY_DIRECTORY}/monitoring/" || true
 
       - name: Write staging environment file
         run: |
-          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" "cat > ~/bodaconnect/.env" <<'EOF'
+          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" "cat > ${DEPLOY_DIRECTORY}/.env" <<'EOF'
           ${{ secrets.STAGING_ENV_FILE }}
           EOF
 
       - name: Deploy application to staging
         run: |
           ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
-            "cd ~/bodaconnect \
+            "cd ${DEPLOY_DIRECTORY} \
+            && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
             && export BACKEND_IMAGE='${{ env.BACKEND_IMAGE }}' \
             && export FRONTEND_IMAGE='${{ env.FRONTEND_IMAGE }}' \
             && export BACKEND_TAG='${{ github.sha }}' \
@@ -168,39 +230,48 @@ jobs:
       - name: Verify staging deployment
         run: |
           sleep 30
-          curl --fail --silent --show-error "http://ec2-16-171-25-187.eu-north-1.compute.amazonaws.com:8080/up" > /dev/null
-          curl --fail --silent --show-error "http://ec2-16-171-25-187.eu-north-1.compute.amazonaws.com:3000/" > /dev/null
+          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
+            "cd ${DEPLOY_DIRECTORY} \
+            && set -a \
+            && . ./.env \
+            && set +a \
+            && curl --fail --silent --show-error http://127.0.0.1:${APP_PORT:-8081}/up > /dev/null \
+            && curl --fail --silent --show-error http://127.0.0.1:${FRONTEND_PORT:-3001}/ > /dev/null"
 
       - name: Collect staging Docker evidence
         run: |
           ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
-            "cd ~/bodaconnect \
+            "cd ${DEPLOY_DIRECTORY} \
+            && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
             && echo '=== docker images ===' \
             && docker images | grep bodaconnect || true \
             && echo '=== docker ps ===' \
-            && docker ps \
+            && docker compose -f docker-compose.deploy.yml ps \
             && echo '=== docker stats ===' \
             && docker stats --no-stream \
             && echo '=== app logs ===' \
-            && docker logs --tail=50 bodaconnect-app \
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 app \
             && echo '=== frontend logs ===' \
-            && docker logs --tail=50 bodaconnect-frontend \
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 frontend \
             && echo '=== db logs ===' \
-            && docker logs --tail=50 bodaconnect-db \
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 db \
             && echo '=== elasticsearch logs ===' \
-            && docker logs --tail=50 bodaconnect-elasticsearch \
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 elasticsearch \
             && echo '=== kibana logs ===' \
-            && docker logs --tail=50 bodaconnect-kibana \
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 kibana \
             && echo '=== metricbeat logs ===' \
-            && docker logs --tail=50 bodaconnect-metricbeat"
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 metricbeat"
 
   deploy-production:
-    name: Deploy to Production
+    name: 6b. Deploy to Server / Cloud (Production)
     runs-on: ubuntu-latest
     needs: deploy-staging
     if: github.event_name == 'push'
     environment:
       name: production
+    env:
+      DEPLOY_DIRECTORY: ~/apps/bodaconnect/production
+      DEPLOY_PROJECT_NAME: bodaconnect-production
 
     steps:
       - name: Checkout repository
@@ -232,20 +303,22 @@ jobs:
 
       - name: Copy deployment files to production server
         run: |
-          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" "mkdir -p ~/bodaconnect/monitoring"
-          scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key docker-compose.deploy.yml "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:~/bodaconnect/docker-compose.deploy.yml"
-          scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key -r monitoring/* "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:~/bodaconnect/monitoring/" || true
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" "mkdir -p ${DEPLOY_DIRECTORY}/monitoring"
+          scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key docker-compose.deploy.yml "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:${DEPLOY_DIRECTORY}/docker-compose.deploy.yml"
+          scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key mosquitto.conf "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:${DEPLOY_DIRECTORY}/mosquitto.conf"
+          scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key -r monitoring/* "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:${DEPLOY_DIRECTORY}/monitoring/" || true
 
       - name: Write production environment file
         run: |
-          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" "cat > ~/bodaconnect/.env" <<'EOF'
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" "cat > ${DEPLOY_DIRECTORY}/.env" <<'EOF'
           ${{ secrets.PRODUCTION_ENV_FILE }}
           EOF
 
       - name: Deploy application to production
         run: |
           ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
-            "cd ~/bodaconnect \
+            "cd ${DEPLOY_DIRECTORY} \
+            && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
             && export BACKEND_IMAGE='${{ env.BACKEND_IMAGE }}' \
             && export FRONTEND_IMAGE='${{ env.FRONTEND_IMAGE }}' \
             && export BACKEND_TAG='${{ github.sha }}' \
@@ -258,28 +331,85 @@ jobs:
       - name: Verify production deployment
         run: |
           sleep 30
-          curl --fail --silent --show-error "http://ec2-51-20-191-160.eu-north-1.compute.amazonaws.com:8080/up" > /dev/null
-          curl --fail --silent --show-error "http://ec2-51-20-191-160.eu-north-1.compute.amazonaws.com:3000/" > /dev/null
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
+            "cd ${DEPLOY_DIRECTORY} \
+            && set -a \
+            && . ./.env \
+            && set +a \
+            && curl --fail --silent --show-error http://127.0.0.1:${APP_PORT:-8080}/up > /dev/null \
+            && curl --fail --silent --show-error http://127.0.0.1:${FRONTEND_PORT:-3000}/ > /dev/null"
 
       - name: Collect production Docker evidence
         run: |
           ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
-            "cd ~/bodaconnect \
+            "cd ${DEPLOY_DIRECTORY} \
+            && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
             && echo '=== docker images ===' \
             && docker images | grep bodaconnect || true \
             && echo '=== docker ps ===' \
-            && docker ps \
+            && docker compose -f docker-compose.deploy.yml ps \
             && echo '=== docker stats ===' \
             && docker stats --no-stream \
             && echo '=== app logs ===' \
-            && docker logs --tail=50 bodaconnect-app \
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 app \
             && echo '=== frontend logs ===' \
-            && docker logs --tail=50 bodaconnect-frontend \
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 frontend \
             && echo '=== db logs ===' \
-            && docker logs --tail=50 bodaconnect-db \
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 db \
             && echo '=== elasticsearch logs ===' \
-            && docker logs --tail=50 bodaconnect-elasticsearch \
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 elasticsearch \
             && echo '=== kibana logs ===' \
-            && docker logs --tail=50 bodaconnect-kibana \
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 kibana \
             && echo '=== metricbeat logs ===' \
-            && docker logs --tail=50 bodaconnect-metricbeat"
+            && docker compose -f docker-compose.deploy.yml logs --tail=50 metricbeat"
+
+  run-mqtt-enabled-application:
+    name: 7. Run MQTT-enabled Application
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: github.event_name == 'push'
+    env:
+      DEPLOY_DIRECTORY: ~/apps/bodaconnect/production
+      DEPLOY_PROJECT_NAME: bodaconnect-production
+
+    steps:
+      - name: Prepare SSH key for production MQTT verification
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s' "${{ secrets.PRODUCTION_SSH_KEY }}" | tr -d '\r' > ~/.ssh/production_key
+          chmod 600 ~/.ssh/production_key
+          touch ~/.ssh/known_hosts
+
+          production_host='${{ secrets.PRODUCTION_HOST }}'
+          production_port='22'
+
+          if [[ "${production_host}" == *:* && "${production_host}" != \[* ]]; then
+            production_port="${production_host##*:}"
+            production_host="${production_host%:*}"
+          fi
+
+          echo "PRODUCTION_SSH_HOST=${production_host}" >> "${GITHUB_ENV}"
+          echo "PRODUCTION_SSH_PORT=${production_port}" >> "${GITHUB_ENV}"
+
+          if ! ssh-keyscan -p "${production_port}" -H "${production_host}" >> ~/.ssh/known_hosts 2>/dev/null; then
+            echo "Unable to fetch the SSH host key for production (${production_host}:${production_port})."
+            echo "Verify PRODUCTION_HOST is correct and reachable from GitHub Actions."
+            exit 1
+          fi
+
+      - name: Verify MQTT-enabled containers are running
+        run: |
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
+            "cd ${DEPLOY_DIRECTORY} \
+            && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
+            && test \"$(docker compose -f docker-compose.deploy.yml ps --services --status running | grep -Ec '^(app|frontend|mqtt-broker)$')\" -eq 3"
+
+      - name: Verify deployed application endpoints remain reachable
+        run: |
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
+            "cd ${DEPLOY_DIRECTORY} \
+            && set -a \
+            && . ./.env \
+            && set +a \
+            && curl --fail --silent --show-error http://127.0.0.1:${APP_PORT:-8080}/up > /dev/null \
+            && curl --fail --silent --show-error http://127.0.0.1:${FRONTEND_PORT:-3000}/ > /dev/null"
