@@ -241,6 +241,23 @@ jobs:
             && curl --fail --silent --show-error http://127.0.0.1:${DEPLOY_APP_PORT}/up > /dev/null \
             && curl --fail --silent --show-error http://127.0.0.1:${DEPLOY_FRONTEND_PORT}/ > /dev/null"
 
+      - name: Diagnose staging deployment failure
+        if: failure()
+        run: |
+          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
+            "cd ${DEPLOY_DIRECTORY} \
+            && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
+            && echo '=== docker compose ps ===' \
+            && docker compose -f docker-compose.deploy.yml ps \
+            && echo '=== app logs ===' \
+            && docker compose -f docker-compose.deploy.yml logs --tail=100 app \
+            && echo '=== frontend logs ===' \
+            && docker compose -f docker-compose.deploy.yml logs --tail=100 frontend \
+            && echo '=== scheduler logs ===' \
+            && docker compose -f docker-compose.deploy.yml logs --tail=100 scheduler \
+            && echo '=== db logs ===' \
+            && docker compose -f docker-compose.deploy.yml logs --tail=100 db"
+
       - name: Collect staging Docker evidence
         run: |
           ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
@@ -344,6 +361,23 @@ jobs:
             "cd ${DEPLOY_DIRECTORY} \
             && curl --fail --silent --show-error http://127.0.0.1:${DEPLOY_APP_PORT}/up > /dev/null \
             && curl --fail --silent --show-error http://127.0.0.1:${DEPLOY_FRONTEND_PORT}/ > /dev/null"
+
+      - name: Diagnose production deployment failure
+        if: failure()
+        run: |
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
+            "cd ${DEPLOY_DIRECTORY} \
+            && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
+            && echo '=== docker compose ps ===' \
+            && docker compose -f docker-compose.deploy.yml ps \
+            && echo '=== app logs ===' \
+            && docker compose -f docker-compose.deploy.yml logs --tail=100 app \
+            && echo '=== frontend logs ===' \
+            && docker compose -f docker-compose.deploy.yml logs --tail=100 frontend \
+            && echo '=== scheduler logs ===' \
+            && docker compose -f docker-compose.deploy.yml logs --tail=100 scheduler \
+            && echo '=== db logs ===' \
+            && docker compose -f docker-compose.deploy.yml logs --tail=100 db"
 
       - name: Collect production Docker evidence
         run: |
