@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 FROM docker.io/library/composer:2.8 AS vendor
 
 WORKDIR /app
