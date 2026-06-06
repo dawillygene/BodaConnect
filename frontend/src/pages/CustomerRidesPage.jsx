@@ -34,6 +34,24 @@ export function CustomerRidesPage() {
         return currentRides;
       }
 
+      const existingRide = currentRides.find((ride) => ride.id === statusUpdate.ride_id);
+
+      if (!existingRide) {
+        const newRide = {
+          id: statusUpdate.ride_id,
+          customer_id: statusUpdate.customer_id,
+          rider_id: statusUpdate.rider_id,
+          rider: statusUpdate.rider,
+          status: statusUpdate.status,
+          pickup_location: statusUpdate.pickup_location,
+          destination_location: statusUpdate.destination_location,
+          created_at: statusUpdate.created_at ?? statusUpdate.updated_at,
+          updated_at: statusUpdate.updated_at,
+        };
+
+        return [newRide, ...currentRides];
+      }
+
       return currentRides.map((ride) =>
         ride.id === statusUpdate.ride_id
           ? {
