@@ -26,6 +26,7 @@ class MonitoringService
         $elasticsearchUrl = $this->normalizeUrl((string) config('services.monitoring.elasticsearch_url'));
         $kibanaUrl = $this->normalizeUrl((string) config('services.monitoring.kibana_url'));
         $metricbeatIndex = (string) config('services.monitoring.metricbeat_index');
+        $applicationMetricsIndex = (string) config('services.monitoring.application_metrics_index', 'bodaconnect-admin-metrics');
         $databaseMetricModule = (string) config('services.monitoring.database_metric_module', 'mysql');
 
         return [
@@ -33,6 +34,7 @@ class MonitoringService
             'kibana' => $this->kibanaStatus($kibanaUrl),
             'metricbeat' => $this->metricbeatStatus($elasticsearchUrl, $metricbeatIndex),
             'database' => $this->databaseStatus($elasticsearchUrl, $metricbeatIndex, $databaseMetricModule),
+            'application_metrics' => $this->applicationMetricsStatus($elasticsearchUrl, $applicationMetricsIndex),
         ];
     }
 
@@ -144,6 +146,66 @@ class MonitoringService
             $this->databaseConnectionStatus(),
             $this->databaseMetricsStatus($elasticsearchUrl, $metricbeatIndex, $databaseMetricModule)
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function applicationMetricsStatus(string $elasticsearchUrl, string $applicationMetricsIndex): array
+    {
+        try {
+            $response = $this->httpClient()->post("{$elasticsearchUrl}/{$applicationMetricsIndex}/_search", [
+                'size' => 1,
+                'sort' => [
+                    ['@timestamp' => ['order' => 'desc']],
+                ],
+                'track_total_hits' => true,
+                '_source' => [
+                    '@timestamp',
+                    'app.environment',
+                    'app.name',
+                    'metrics.total_users',
+                    'metrics.customers',
+                    'metrics.riders',
+                    'metrics.total_rides',
+                    'metrics.pending',
+                    'metrics.completed',
+                    'metrics.cancelled',
+                ],
+                'query' => [
+                    'bool' => [
+                        'filter' => [
+                            ['range' => ['@timestamp' => ['gte' => 'now-24h']]],
+                        ],
+                    ],
+                ],
+            ]);
+
+            $latestDocument = $response->json('hits.hits.0._source', []);
+
+            return [
+                'index' => $applicationMetricsIndex,
+                'reachable' => $response->successful(),
+                'has_recent_metrics' => (int) $response->json('hits.total.value', 0) > 0,
+                'recent_documents' => (int) $response->json('hits.total.value', 0),
+                'last_event_at' => $latestDocument['@timestamp'] ?? null,
+                'application_name' => $latestDocument['app']['name'] ?? null,
+                'application_environment' => $latestDocument['app']['environment'] ?? null,
+                'latest_snapshot' => $latestDocument['metrics'] ?? null,
+            ];
+        } catch (ConnectionException $exception) {
+            return [
+                'index' => $applicationMetricsIndex,
+                'reachable' => false,
+                'has_recent_metrics' => false,
+                'recent_documents' => 0,
+                'last_event_at' => null,
+                'application_name' => null,
+                'application_environment' => null,
+                'latest_snapshot' => null,
+                'error' => $exception->getMessage(),
+            ];
+        }
     }
 
     /**
