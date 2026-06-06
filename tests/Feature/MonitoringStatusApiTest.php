@@ -17,6 +17,7 @@ class MonitoringStatusApiTest extends TestCase
         config()->set('services.monitoring.elasticsearch_url', 'http://elasticsearch:9200');
         config()->set('services.monitoring.kibana_url', 'http://kibana:5601');
         config()->set('services.monitoring.metricbeat_index', 'metricbeat-*');
+        config()->set('services.monitoring.application_metrics_index', 'bodaconnect-admin-metrics');
         config()->set('services.monitoring.database_metric_module', 'mysql');
 
         Http::fake([
@@ -58,6 +59,31 @@ class MonitoringStatusApiTest extends TestCase
                         ],
                     ],
                 ]),
+            'http://elasticsearch:9200/bodaconnect-admin-metrics/_search' => Http::response([
+                'hits' => [
+                    'total' => ['value' => 4],
+                    'hits' => [
+                        [
+                            '_source' => [
+                                '@timestamp' => '2026-05-06T08:32:00Z',
+                                'app' => [
+                                    'environment' => 'testing',
+                                    'name' => 'BodaConnect',
+                                ],
+                                'metrics' => [
+                                    'total_users' => 8,
+                                    'customers' => 4,
+                                    'riders' => 3,
+                                    'total_rides' => 12,
+                                    'pending' => 2,
+                                    'completed' => 7,
+                                    'cancelled' => 1,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ]),
             'http://kibana:5601/api/status' => Http::response([
                 'name' => 'bodaconnect-kibana',
                 'version' => ['number' => '8.14.3'],
@@ -84,6 +110,10 @@ class MonitoringStatusApiTest extends TestCase
             ->assertJsonPath('monitoring.metricbeat.reachable', true)
             ->assertJsonPath('monitoring.metricbeat.has_recent_metrics', true)
             ->assertJsonPath('monitoring.metricbeat.last_container_name', 'bodaconnect-app')
+            ->assertJsonPath('monitoring.application_metrics.reachable', true)
+            ->assertJsonPath('monitoring.application_metrics.has_recent_metrics', true)
+            ->assertJsonPath('monitoring.application_metrics.application_name', 'BodaConnect')
+            ->assertJsonPath('monitoring.application_metrics.latest_snapshot.total_users', 8)
             ->assertJsonPath('monitoring.database.reachable', true)
             ->assertJsonPath('monitoring.database.metrics_reachable', true)
             ->assertJsonPath('monitoring.database.has_recent_metrics', true)
