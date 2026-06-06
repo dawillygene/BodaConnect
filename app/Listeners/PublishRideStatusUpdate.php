@@ -27,6 +27,13 @@ class PublishRideStatusUpdate
             $this->adminTopic(),
             $payload,
         );
+
+        if ($rideRequest->rider_id !== null) {
+            $this->rideStatusPublisher->publish(
+                $this->topicForRider((int) $rideRequest->rider_id),
+                $payload,
+            );
+        }
     }
 
     private function topicForCustomer(int $customerId): string
@@ -39,6 +46,13 @@ class PublishRideStatusUpdate
     private function adminTopic(): string
     {
         return trim((string) config('services.mqtt.topics.admin_ride_status', 'ride/status/admin'), '/');
+    }
+
+    private function topicForRider(int $riderId): string
+    {
+        $topicRoot = trim((string) config('services.mqtt.topics.rider_ride_status', 'ride/status/rider'), '/');
+
+        return "{$topicRoot}/{$riderId}";
     }
 
     /**
