@@ -139,6 +139,6 @@ services:
 
 volumes:
   mysql_data:
-    name: ${DATA_VOLUME_PREFIX:-bodaconnect}-mysql-data
+    name: ${MYSQL_DATA_VOLUME:-${DATA_VOLUME_PREFIX:-bodaconnect}-mysql-data}
   elasticsearch_data:
-    name: ${DATA_VOLUME_PREFIX:-bodaconnect}-elasticsearch-data
+    name: ${ELASTICSEARCH_DATA_VOLUME:-${DATA_VOLUME_PREFIX:-bodaconnect}-elasticsearch-data}
