@@ -171,6 +171,7 @@ jobs:
     env:
       DEPLOY_DIRECTORY: ~/apps/bodaconnect/staging
       DEPLOY_PROJECT_NAME: bodaconnect-staging
+      DEPLOY_VOLUME_PREFIX: bodaconnect-staging
       DEPLOY_APP_PORT: 8081
       DEPLOY_FRONTEND_PORT: 3001
       DEPLOY_KIBANA_PORT: 5602
@@ -221,6 +222,7 @@ jobs:
           ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
             "cd ${DEPLOY_DIRECTORY} \
             && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
+            && export DATA_VOLUME_PREFIX='${DEPLOY_VOLUME_PREFIX}' \
             && export APP_PORT='${DEPLOY_APP_PORT}' \
             && export FRONTEND_PORT='${DEPLOY_FRONTEND_PORT}' \
             && export KIBANA_PORT='${DEPLOY_KIBANA_PORT}' \
@@ -292,6 +294,7 @@ jobs:
     env:
       DEPLOY_DIRECTORY: ~/apps/bodaconnect/production
       DEPLOY_PROJECT_NAME: bodaconnect-production
+      DEPLOY_VOLUME_PREFIX: bodaconnect-production
       DEPLOY_APP_PORT: 8080
       DEPLOY_FRONTEND_PORT: 3000
       DEPLOY_KIBANA_PORT: 5601
@@ -342,6 +345,7 @@ jobs:
           ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
             "cd ${DEPLOY_DIRECTORY} \
             && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
+            && export DATA_VOLUME_PREFIX='${DEPLOY_VOLUME_PREFIX}' \
             && export APP_PORT='${DEPLOY_APP_PORT}' \
             && export FRONTEND_PORT='${DEPLOY_FRONTEND_PORT}' \
             && export KIBANA_PORT='${DEPLOY_KIBANA_PORT}' \
