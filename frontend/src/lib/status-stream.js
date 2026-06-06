@@ -17,6 +17,10 @@ export function adminRideStatusTopic() {
   return 'ride/status/admin';
 }
 
+export function riderRideStatusTopic(riderId) {
+  return `ride/status/rider/${riderId}`;
+}
+
 export function subscribeToRideStatusUpdates(customerId, onStatusUpdate) {
   if (!customerId) {
     return () => {};
@@ -29,15 +33,28 @@ export function subscribeToAdminRideStatusUpdates(onStatusUpdate) {
   return subscribeToTopic(adminRideStatusTopic(), onStatusUpdate);
 }
 
+export function subscribeToRiderRideStatusUpdates(riderId, onStatusUpdate) {
+  if (!riderId) {
+    return () => {};
+  }
+
+  return subscribeToTopic(riderRideStatusTopic(riderId), onStatusUpdate);
+}
+
 function subscribeToTopic(topic, onStatusUpdate) {
   const client = mqtt.connect(buildWebSocketUrl(rideStatusPath), {
     clean: true,
-    connectTimeout: 1000,
+    connectTimeout: 4000,
+    keepalive: 60,
     reconnectPeriod: 1000,
   });
 
   client.on('connect', () => {
-    client.subscribe(topic);
+    client.subscribe(topic, (error) => {
+      if (error) {
+        console.error('MQTT subscription error.', error);
+      }
+    });
   });
 
   client.on('message', (incomingTopic, payload) => {
