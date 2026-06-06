@@ -444,7 +444,7 @@ jobs:
           ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
             "cd ${DEPLOY_DIRECTORY} \
             && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
-            && test \"$(docker compose -f docker-compose.deploy.yml ps --services --status running | grep -Ec '^(app|frontend|mqtt-broker)$')\" -eq 3"
+            && test \"\$(docker compose -f docker-compose.deploy.yml ps --services --status running | grep -Ec '^(app|frontend|mqtt-broker)$')\" -eq 3"
 
       - name: Verify deployed application endpoints remain reachable
         run: |
