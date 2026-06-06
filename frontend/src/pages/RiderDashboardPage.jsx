@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingScreen } from '../components/LoadingScreen';
@@ -8,33 +8,24 @@ import { StatCard } from '../components/StatCard';
 import { StatusBadge } from '../components/StatusBadge';
 import { api } from '../lib/api';
 import { formatDate } from '../lib/formatters';
+import { subscribeToRiderRideStatusUpdates } from '../lib/status-stream';
 
 export function RiderDashboardPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [dashboard, setDashboard] = useState(null);
 
-  async function loadDashboard() {
+  const loadDashboard = useEffectEvent(async () => {
     const response = await api.get('/dashboard', token);
     setDashboard(response.dashboard);
-  }
+  });
 
   useEffect(() => {
-    let ignore = false;
+    loadDashboard();
+  }, [loadDashboard, token]);
 
-    async function bootstrap() {
-      const response = await api.get('/dashboard', token);
-
-      if (!ignore) {
-        setDashboard(response.dashboard);
-      }
-    }
-
-    bootstrap();
-
-    return () => {
-      ignore = true;
-    };
-  }, [token]);
+  useEffect(() => {
+    return subscribeToRiderRideStatusUpdates(user?.id, loadDashboard);
+  }, [loadDashboard, user?.id]);
 
   async function advanceRide(ride) {
     const action =
