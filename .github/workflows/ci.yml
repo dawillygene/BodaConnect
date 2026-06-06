@@ -221,8 +221,20 @@ jobs:
         run: |
           ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
             "cd ${DEPLOY_DIRECTORY} \
+            && mysql_volume='' \
+            && for candidate in '${DEPLOY_PROJECT_NAME}_mysql_data' 'bodaconnect_mysql_data' '${DEPLOY_VOLUME_PREFIX}-mysql-data'; do \
+              if docker volume inspect \"\$candidate\" >/dev/null 2>&1; then mysql_volume=\"\$candidate\"; break; fi; \
+            done \
+            && if [ -z \"\$mysql_volume\" ]; then mysql_volume='${DEPLOY_VOLUME_PREFIX}-mysql-data'; fi \
+            && elasticsearch_volume='' \
+            && for candidate in '${DEPLOY_PROJECT_NAME}_elasticsearch_data' 'bodaconnect_elasticsearch_data' '${DEPLOY_VOLUME_PREFIX}-elasticsearch-data'; do \
+              if docker volume inspect \"\$candidate\" >/dev/null 2>&1; then elasticsearch_volume=\"\$candidate\"; break; fi; \
+            done \
+            && if [ -z \"\$elasticsearch_volume\" ]; then elasticsearch_volume='${DEPLOY_VOLUME_PREFIX}-elasticsearch-data'; fi \
             && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
             && export DATA_VOLUME_PREFIX='${DEPLOY_VOLUME_PREFIX}' \
+            && export MYSQL_DATA_VOLUME=\"\$mysql_volume\" \
+            && export ELASTICSEARCH_DATA_VOLUME=\"\$elasticsearch_volume\" \
             && export APP_PORT='${DEPLOY_APP_PORT}' \
             && export FRONTEND_PORT='${DEPLOY_FRONTEND_PORT}' \
             && export KIBANA_PORT='${DEPLOY_KIBANA_PORT}' \
@@ -230,6 +242,8 @@ jobs:
             && export FRONTEND_IMAGE='${{ env.FRONTEND_IMAGE }}' \
             && export BACKEND_TAG='${{ github.sha }}' \
             && export FRONTEND_TAG='${{ github.sha }}' \
+            && echo \"Using MySQL volume: \$MYSQL_DATA_VOLUME\" \
+            && echo \"Using Elasticsearch volume: \$ELASTICSEARCH_DATA_VOLUME\" \
             && docker compose -f docker-compose.deploy.yml pull \
             && docker compose -f docker-compose.deploy.yml up -d \
             && docker compose -f docker-compose.deploy.yml exec -T app php artisan migrate --force \
@@ -344,8 +358,20 @@ jobs:
         run: |
           ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
             "cd ${DEPLOY_DIRECTORY} \
+            && mysql_volume='' \
+            && for candidate in '${DEPLOY_PROJECT_NAME}_mysql_data' 'bodaconnect_mysql_data' '${DEPLOY_VOLUME_PREFIX}-mysql-data'; do \
+              if docker volume inspect \"\$candidate\" >/dev/null 2>&1; then mysql_volume=\"\$candidate\"; break; fi; \
+            done \
+            && if [ -z \"\$mysql_volume\" ]; then mysql_volume='${DEPLOY_VOLUME_PREFIX}-mysql-data'; fi \
+            && elasticsearch_volume='' \
+            && for candidate in '${DEPLOY_PROJECT_NAME}_elasticsearch_data' 'bodaconnect_elasticsearch_data' '${DEPLOY_VOLUME_PREFIX}-elasticsearch-data'; do \
+              if docker volume inspect \"\$candidate\" >/dev/null 2>&1; then elasticsearch_volume=\"\$candidate\"; break; fi; \
+            done \
+            && if [ -z \"\$elasticsearch_volume\" ]; then elasticsearch_volume='${DEPLOY_VOLUME_PREFIX}-elasticsearch-data'; fi \
             && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
             && export DATA_VOLUME_PREFIX='${DEPLOY_VOLUME_PREFIX}' \
+            && export MYSQL_DATA_VOLUME=\"\$mysql_volume\" \
+            && export ELASTICSEARCH_DATA_VOLUME=\"\$elasticsearch_volume\" \
             && export APP_PORT='${DEPLOY_APP_PORT}' \
             && export FRONTEND_PORT='${DEPLOY_FRONTEND_PORT}' \
             && export KIBANA_PORT='${DEPLOY_KIBANA_PORT}' \
@@ -353,6 +379,8 @@ jobs:
             && export FRONTEND_IMAGE='${{ env.FRONTEND_IMAGE }}' \
             && export BACKEND_TAG='${{ github.sha }}' \
             && export FRONTEND_TAG='${{ github.sha }}' \
+            && echo \"Using MySQL volume: \$MYSQL_DATA_VOLUME\" \
+            && echo \"Using Elasticsearch volume: \$ELASTICSEARCH_DATA_VOLUME\" \
             && docker compose -f docker-compose.deploy.yml pull \
             && docker compose -f docker-compose.deploy.yml up -d \
             && docker compose -f docker-compose.deploy.yml exec -T app php artisan migrate --force \
