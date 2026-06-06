@@ -39,6 +39,13 @@ class RideStatusUpdateTest extends TestCase
                     'ride/status/admin',
                     \Mockery::type('array'),
                 );
+
+            $mock->shouldReceive('publish')
+                ->once()
+                ->with(
+                    "ride/status/rider/{$rideRequest->rider_id}",
+                    \Mockery::type('array'),
+                );
         });
 
         RideStatusUpdated::dispatch($rideRequest);
@@ -145,6 +152,24 @@ class RideStatusUpdateTest extends TestCase
                 ->once()
                 ->with(
                     'ride/status/admin',
+                    \Mockery::on(function (array $payload) use ($rideRequest): bool {
+                        return $payload['ride_id'] === $rideRequest->id
+                            && $payload['customer_id'] === $rideRequest->customer_id
+                            && $payload['rider_id'] === $rideRequest->rider_id
+                            && $payload['rider']['id'] === $rideRequest->rider_id
+                            && $payload['rider']['name'] === $rideRequest->rider->name
+                            && $payload['status'] === 'Accepted'
+                            && $payload['pickup_location'] === $rideRequest->pickup_location
+                            && $payload['destination_location'] === $rideRequest->destination_location
+                            && $payload['created_at'] === $rideRequest->created_at?->toISOString()
+                            && $payload['updated_at'] === $rideRequest->updated_at?->toISOString();
+                    }),
+                );
+
+            $mock->shouldReceive('publish')
+                ->once()
+                ->with(
+                    "ride/status/rider/{$rideRequest->rider_id}",
                     \Mockery::on(function (array $payload) use ($rideRequest): bool {
                         return $payload['ride_id'] === $rideRequest->id
                             && $payload['customer_id'] === $rideRequest->customer_id
