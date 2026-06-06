@@ -26,12 +26,37 @@ services:
       - ./:/var/www/html
     restart: unless-stopped
 
+  scheduler:
+    build:
+      context: .
+      target: app
+    container_name: bodaconnect-scheduler
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USERNAME: bodaconnect
+      DB_PASSWORD: secret
+      ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+    entrypoint: ["php", "artisan", "schedule:work"]
+    volumes:
+      - ./:/var/www/html
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
     container_name: bodaconnect-frontend
     depends_on:
       app:
+        condition: service_started
+      scheduler:
         condition: service_started
       mqtt-broker:
         condition: service_started
@@ -102,6 +127,8 @@ services:
     user: root
     depends_on:
       app:
+        condition: service_started
+      scheduler:
         condition: service_started
       frontend:
         condition: service_started
