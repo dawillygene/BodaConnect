@@ -53,6 +53,8 @@ processors:
 
 setup.kibana:
   host: "kibana:5601"
+  username: "${KIBANA_USERNAME:elastic}"
+  password: "${KIBANA_PASSWORD}"
 
 setup.dashboards.enabled: true
 setup.dashboards.retry.enabled: true
@@ -61,3 +63,5 @@ setup.dashboards.retry.maximum: 30
 
 output.elasticsearch:
   hosts: ["http://elasticsearch:9200"]
+  username: "${ELASTICSEARCH_USERNAME:elastic}"
+  password: "${ELASTICSEARCH_PASSWORD}"
