@@ -1,0 +1,122 @@
+name: 8. Roll Back Production Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_tag:
+        description: Docker tag to deploy for the backend image
+        required: true
+        type: string
+      frontend_tag:
+        description: Docker tag to deploy for the frontend image
+        required: true
+        type: string
+      reason:
+        description: Reason for the rollback
+        required: false
+        type: string
+
+env:
+  BACKEND_IMAGE: confidehub/bodaconnect-app
+  FRONTEND_IMAGE: confidehub/bodaconnect-frontend
+
+jobs:
+  rollback-production:
+    name: Roll Back Production Deployment
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_DIRECTORY: ~/apps/bodaconnect/production
+      DEPLOY_PROJECT_NAME: bodaconnect-production
+      DEPLOY_VOLUME_PREFIX: bodaconnect-production
+      DEPLOY_APP_PORT: 8080
+      DEPLOY_FRONTEND_PORT: 3000
+      DEPLOY_KIBANA_PORT: 5601
+      BACKEND_TAG: ${{ inputs.backend_tag }}
+      FRONTEND_TAG: ${{ inputs.frontend_tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Confirm image tags exist
+        run: |
+          docker manifest inspect "${BACKEND_IMAGE}:${BACKEND_TAG}" > /dev/null
+          docker manifest inspect "${FRONTEND_IMAGE}:${FRONTEND_TAG}" > /dev/null
+
+      - name: Prepare SSH key for production
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s' "${{ secrets.PRODUCTION_SSH_KEY }}" | tr -d '\r' > ~/.ssh/production_key
+          chmod 600 ~/.ssh/production_key
+          touch ~/.ssh/known_hosts
+
+          production_host='${{ secrets.PRODUCTION_HOST }}'
+          production_port='22'
+
+          if [[ "${production_host}" == *:* && "${production_host}" != \[* ]]; then
+            production_port="${production_host##*:}"
+            production_host="${production_host%:*}"
+          fi
+
+          echo "PRODUCTION_SSH_HOST=${production_host}" >> "${GITHUB_ENV}"
+          echo "PRODUCTION_SSH_PORT=${production_port}" >> "${GITHUB_ENV}"
+
+          if ! ssh-keyscan -p "${production_port}" -H "${production_host}" >> ~/.ssh/known_hosts 2>/dev/null; then
+            echo "Unable to fetch the SSH host key for production (${production_host}:${production_port})."
+            echo "Verify PRODUCTION_HOST is correct and reachable from GitHub Actions."
+            exit 1
+          fi
+
+      - name: Copy deployment files to production server
+        run: |
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" "mkdir -p ${DEPLOY_DIRECTORY}/monitoring"
+          scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key docker-compose.deploy.yml "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:${DEPLOY_DIRECTORY}/docker-compose.deploy.yml"
+          scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key mosquitto.conf "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:${DEPLOY_DIRECTORY}/mosquitto.conf"
+          scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key -r monitoring/* "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:${DEPLOY_DIRECTORY}/monitoring/" || true
+
+      - name: Roll back production deployment
+        run: |
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
+            "cd ${DEPLOY_DIRECTORY} \
+            && mysql_volume='' \
+            && for candidate in '${DEPLOY_PROJECT_NAME}_mysql_data' 'bodaconnect_mysql_data' '${DEPLOY_VOLUME_PREFIX}-mysql-data'; do \
+              if docker volume inspect \"\$candidate\" >/dev/null 2>&1; then mysql_volume=\"\$candidate\"; break; fi; \
+            done \
+            && if [ -z \"\$mysql_volume\" ]; then mysql_volume='${DEPLOY_VOLUME_PREFIX}-mysql-data'; fi \
+            && elasticsearch_volume='' \
+            && for candidate in '${DEPLOY_PROJECT_NAME}_elasticsearch_data' 'bodaconnect_elasticsearch_data' '${DEPLOY_VOLUME_PREFIX}-elasticsearch-data'; do \
+              if docker volume inspect \"\$candidate\" >/dev/null 2>&1; then elasticsearch_volume=\"\$candidate\"; break; fi; \
+            done \
+            && if [ -z \"\$elasticsearch_volume\" ]; then elasticsearch_volume='${DEPLOY_VOLUME_PREFIX}-elasticsearch-data'; fi \
+            && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
+            && export DATA_VOLUME_PREFIX='${DEPLOY_VOLUME_PREFIX}' \
+            && export MYSQL_DATA_VOLUME=\"\$mysql_volume\" \
+            && export ELASTICSEARCH_DATA_VOLUME=\"\$elasticsearch_volume\" \
+            && export APP_PORT='${DEPLOY_APP_PORT}' \
+            && export FRONTEND_PORT='${DEPLOY_FRONTEND_PORT}' \
+            && export KIBANA_PORT='${DEPLOY_KIBANA_PORT}' \
+            && export BACKEND_IMAGE='${BACKEND_IMAGE}' \
+            && export FRONTEND_IMAGE='${FRONTEND_IMAGE}' \
+            && export BACKEND_TAG='${BACKEND_TAG}' \
+            && export FRONTEND_TAG='${FRONTEND_TAG}' \
+            && docker compose -f docker-compose.deploy.yml pull \
+            && docker compose -f docker-compose.deploy.yml up -d"
+
+      - name: Verify rollback deployment
+        run: |
+          sleep 30
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
+            "cd ${DEPLOY_DIRECTORY} \
+            && curl --fail --silent --show-error http://127.0.0.1:${DEPLOY_APP_PORT}/up > /dev/null \
+            && curl --fail --silent --show-error http://127.0.0.1:${DEPLOY_FRONTEND_PORT}/ > /dev/null"
+
+      - name: Record rollback summary
+        if: always()
+        run: |
+          {
+            echo '## Production Rollback Summary'
+            echo
+            echo "- Backend tag: \`${BACKEND_TAG}\`"
+            echo "- Frontend tag: \`${FRONTEND_TAG}\`"
+            echo "- Reason: \`${{ inputs.reason || 'not provided' }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
