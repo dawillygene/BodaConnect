@@ -179,3 +179,10 @@ build and push to the docker
 $docker build --target app -t confidehub/bodaconnect-app:latest .
 
 docker tag confidehub/bodaconnect-app:latest confidehub/bodaconnect-app:v1
+
+
+
+
+cd ~/apps/bodaconnect/production && export COMPOSE_PROJECT_NAME='bodaconnect-production' && docker compose -f docker-compose.deploy.yml exec -T app php artisan db:seed --force
+
+cd ~/apps/bodaconnect/staging && export COMPOSE_PROJECT_NAME='bodaconnect-staging' && docker compose -f docker-compose.deploy.yml exec -T app php artisan db:seed --force
