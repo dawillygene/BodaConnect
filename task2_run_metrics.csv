@@ -1,0 +1,7 @@
+run_id,date_utc,commit_sha,workflow_result,build_time_seconds,test_time_seconds,staging_deploy_seconds,production_deploy_seconds,total_workflow_seconds,test_job_result,staging_result,production_result
+27333145847,2026-06-11,5811b29b7c307e3c92c8e84621972de0c41078f4,failure,18,17,143,0,420,success,failure,skipped
+27063777592,2026-06-06,a3a53cf329ee5a5850e2a22a9cd321b8b8ee37d5,success,22,12,106,81,785,success,success,success
+27063367050,2026-06-06,bd9ed868154411b414fdf556ea788db3d51cc7b7,success,18,24,182,80,635,success,success,success
+27061919564,2026-06-06,b53675bd8c6a0d5abad100d803f4bda7a66927cb,success,24,33,78,70,562,success,success,success
+27061542038,2026-06-06,8a894f4be4b9120b22ace7680f689b275335fb4c,failure,18,14,74,146,904,success,success,success
+27060808324,2026-06-06,d31ef2db0387f53a91776ffbe650cbb7ac1a1e5d,failure,18,17,214,0,460,success,failure,skipped
