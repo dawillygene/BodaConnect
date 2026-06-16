@@ -31,7 +31,7 @@ jobs:
         with:
           php-version: '8.4'
           extensions: mbstring, bcmath, pdo, pdo_mysql, pdo_sqlite, sqlite3, xml, curl, zip, gd
-          coverage: none
+          coverage: pcov
 
       - name: Copy Laravel environment file
         run: |
@@ -88,8 +88,36 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
-      - name: Run backend tests
-        run: php artisan test --compact
+      - name: Run backend tests with coverage
+        run: |
+          mkdir -p coverage
+          ./vendor/bin/phpunit \
+            --log-junit coverage/junit.xml \
+            --coverage-clover coverage/clover.xml \
+            --coverage-html coverage/html \
+            --coverage-text=coverage/summary.txt \
+            --only-summary-for-coverage-text
+
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          {
+            echo '## PHPUnit Coverage Summary'
+            echo
+            if [ -f coverage/summary.txt ]; then
+              cat coverage/summary.txt
+            else
+              echo 'Coverage summary was not generated.'
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload test coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-coverage-${{ github.run_number }}
+          path: coverage
+          if-no-files-found: error
 
   build-docker-image:
     name: 4. Build Docker Image
