@@ -1,6 +1,0 @@
-metric,baseline_value,unit,source,notes
-Build time per commit,19.7,seconds,GitHub Actions Build Application job,Average across 6 recent completed push runs from 2026-06-06 to 2026-06-11
-Test success rate,100,percent,GitHub Actions Run Tests job,6 successful test jobs out of 6 measured runs
-Deployment frequency,4.7,successful production deployments per week,GitHub Actions Deploy to Production job,Equivalent to 4 successful production deployments in the 6-day sample window
-MQTT message latency,1.0,seconds,Assignment 2 MQTT subscriber and UI evidence,Conservative observed real-time baseline reported as less than or equal to 1 second
-Downtime after deployment,30,seconds,GitHub Actions deployment verification step,Upper bound based on the first successful health-check window after deployment
