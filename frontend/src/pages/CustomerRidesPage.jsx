@@ -5,6 +5,7 @@ import { FormField } from '../components/FormField';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
+import { RideMap } from '../components/RideMap';
 import { StatusBadge } from '../components/StatusBadge';
 import { api } from '../lib/api';
 import { formatDate } from '../lib/formatters';
@@ -22,6 +23,8 @@ export function CustomerRidesPage() {
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedRide, setSelectedRide] = useState(null);
+  const [showMapPreview, setShowMapPreview] = useState(false);
 
   async function loadRides() {
     const response = await api.get('/rides', token);
@@ -100,6 +103,7 @@ export function CustomerRidesPage() {
     try {
       await api.post('/rides', form, token);
       setForm(initialForm);
+      setShowMapPreview(false);
       await loadRides();
     } catch (submissionError) {
       setError(submissionError.message);
@@ -113,9 +117,14 @@ export function CustomerRidesPage() {
     await loadRides();
   }
 
+  const hasLocations = form.pickup_location.trim().length > 2 || form.destination_location.trim().length > 2;
+
   if (!rides) {
     return <LoadingScreen label="Loading rides" />;
   }
+
+  const pendingCount = rides.filter((r) => r.status === 'Pending').length;
+  const completedCount = rides.filter((r) => r.status === 'Completed').length;
 
   return (
     <div className="page-stack">
@@ -145,19 +154,55 @@ export function CustomerRidesPage() {
               value={form.destination_location}
             />
           </div>
+
+          {/* Map preview toggle */}
+          {hasLocations && (
+            <div className="map-preview-toggle-row">
+              <button
+                className="button button-ghost button-small"
+                onClick={() => setShowMapPreview((v) => !v)}
+                type="button"
+              >
+                <span className="map-pin-icon" aria-hidden="true">📍</span>
+                {showMapPreview ? 'Hide map preview' : 'Preview route on map'}
+              </button>
+            </div>
+          )}
+
+          {showMapPreview && hasLocations && (
+            <div className="ride-map-panel">
+              <div className="ride-map-legend">
+                <span className="map-legend-item map-legend-pickup">
+                  <span className="map-legend-dot" />
+                  Pickup
+                </span>
+                <span className="map-legend-item map-legend-dest">
+                  <span className="map-legend-dot" />
+                  Destination
+                </span>
+                <span className="map-legend-note">Powered by OpenStreetMap</span>
+              </div>
+              <RideMap
+                pickupLocation={form.pickup_location}
+                destinationLocation={form.destination_location}
+                height="300px"
+              />
+            </div>
+          )}
+
           <label className="field">
             <span>Notes</span>
             <textarea
               className="input textarea"
               name="notes"
               onChange={handleChange}
-              rows="4"
+              rows="3"
               value={form.notes}
             />
           </label>
           {error ? <p className="form-error">{error}</p> : null}
           <button className="button" disabled={isSubmitting} type="submit">
-            {isSubmitting ? 'Submitting...' : 'Request ride'}
+            {isSubmitting ? 'Submitting…' : 'Request ride'}
           </button>
         </form>
       </Panel>
@@ -177,9 +222,11 @@ export function CustomerRidesPage() {
               </div>
               <div className="table-summary-card">
                 <span className="table-summary-label">Pending rides</span>
-                <strong className="table-summary-value">
-                  {rides.filter((ride) => ride.status === 'Pending').length}
-                </strong>
+                <strong className="table-summary-value">{pendingCount}</strong>
+              </div>
+              <div className="table-summary-card">
+                <span className="table-summary-label">Completed</span>
+                <strong className="table-summary-value">{completedCount}</strong>
               </div>
             </div>
             <div className="table-wrap">
@@ -196,28 +243,76 @@ export function CustomerRidesPage() {
                 </thead>
                 <tbody>
                   {rides.map((ride) => (
-                    <tr key={ride.id}>
-                      <td>#{ride.id}</td>
-                      <td className="route-text">
-                        {ride.pickup_location} to {ride.destination_location}
-                      </td>
-                      <td>
-                        <StatusBadge status={ride.status} />
-                      </td>
-                      <td>{ride.rider?.name ?? 'Unassigned'}</td>
-                      <td>{formatDate(ride.created_at)}</td>
-                      <td>
-                        {ride.status === 'Pending' ? (
-                          <button
-                            className="button button-secondary button-small"
-                            onClick={() => cancelRide(ride.id)}
-                            type="button"
-                          >
-                            Cancel
-                          </button>
-                        ) : null}
-                      </td>
-                    </tr>
+                    <>
+                      <tr
+                        key={ride.id}
+                        className={selectedRide?.id === ride.id ? 'row-selected' : ''}
+                        onClick={() => setSelectedRide(selectedRide?.id === ride.id ? null : ride)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <td>#{ride.id}</td>
+                        <td className="route-text">
+                          <span className="route-from">{ride.pickup_location}</span>
+                          <span className="route-arrow">→</span>
+                          <span className="route-to">{ride.destination_location}</span>
+                        </td>
+                        <td>
+                          <StatusBadge status={ride.status} />
+                        </td>
+                        <td>{ride.rider?.name ?? <span className="muted">Unassigned</span>}</td>
+                        <td>{formatDate(ride.created_at)}</td>
+                        <td>
+                          <div className="row-actions">
+                            <button
+                              className="button button-ghost button-small map-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedRide(selectedRide?.id === ride.id ? null : ride);
+                              }}
+                              type="button"
+                              title="View on map"
+                            >
+                              📍
+                            </button>
+                            {ride.status === 'Pending' ? (
+                              <button
+                                className="button button-secondary button-small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelRide(ride.id);
+                                }}
+                                type="button"
+                              >
+                                Cancel
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                      {selectedRide?.id === ride.id && (
+                        <tr key={`map-${ride.id}`} className="map-expand-row">
+                          <td colSpan={6} className="map-expand-cell">
+                            <div className="ride-map-panel">
+                              <div className="ride-map-legend">
+                                <span className="map-legend-item map-legend-pickup">
+                                  <span className="map-legend-dot" />
+                                  {ride.pickup_location}
+                                </span>
+                                <span className="map-legend-item map-legend-dest">
+                                  <span className="map-legend-dot" />
+                                  {ride.destination_location}
+                                </span>
+                              </div>
+                              <RideMap
+                                pickupLocation={ride.pickup_location}
+                                destinationLocation={ride.destination_location}
+                                height="260px"
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   ))}
                 </tbody>
               </table>
