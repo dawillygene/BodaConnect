@@ -1094,3 +1094,284 @@ html[data-theme='dark'] .empty-icon {
     font-size: clamp(2.35rem, 13vw, 3.6rem);
   }
 }
+
+/* ── Map styles ───────────────────────────────────────────── */
+
+.ride-map-wrapper {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.ride-map-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.ride-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.map-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.map-legend-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.map-legend-pickup .map-legend-dot { background: #e57b1d; }
+.map-legend-dest .map-legend-dot   { background: #006e63; }
+
+.map-legend-note {
+  margin-left: auto;
+  font-size: 0.74rem;
+  color: var(--text-faint);
+}
+
+.map-preview-toggle-row {
+  display: flex;
+}
+
+.map-pin-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* ── Route text improvements ────────────────────────────────── */
+
+.route-text {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.route-from { color: var(--text); font-weight: 500; }
+.route-to   { color: var(--text-soft); }
+.route-arrow { color: var(--brand-warm); font-weight: 700; flex-shrink: 0; }
+
+/* ── Inline map expand row ──────────────────────────────────── */
+
+.map-expand-row td { padding: 0; }
+
+.map-expand-cell {
+  padding: 0.75rem 1rem !important;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+  animation: slideDown 160ms ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.row-selected td { background: rgba(80, 163, 164, 0.07); }
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.map-btn {
+  font-size: 1.05rem;
+  padding: 0.45rem 0.6rem !important;
+  min-height: 2.1rem !important;
+}
+
+/* ── Ops map (admin) ────────────────────────────────────────── */
+
+.ops-map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.ops-ride-meta  { display: flex; align-items: center; gap: 0.75rem; }
+.ops-ride-id    { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.95rem; color: var(--text); }
+
+.ops-ride-route {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
+
+.map-info-note { font-size: 0.8rem; color: var(--text-faint); margin-top: 0.5rem; }
+
+/* ── Current trip panel (rider) ─────────────────────────────── */
+
+.current-trip-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+  padding: 1rem;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.current-trip-info    { display: grid; gap: 0.3rem; }
+.current-trip-route   { display: flex; align-items: center; gap: 0.6rem; }
+
+.route-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  min-width: 5.5rem;
+}
+
+.pickup-label { color: var(--brand-warm); }
+.dest-label   { color: var(--brand-deep); }
+.route-place  { font-weight: 500; color: var(--text); }
+
+.current-trip-arrow {
+  font-size: 1.1rem;
+  color: var(--brand-warm);
+  margin-left: 5.5rem;
+}
+
+.current-trip-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+/* ── Leaflet override ───────────────────────────────────────── */
+
+.leaflet-container { font-family: inherit; background: var(--bg); }
+.leaflet-control-attribution { font-size: 10px; opacity: 0.7; }
+.leaflet-bar a {
+  background-color: var(--surface-strong) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+html[data-theme='dark'] .leaflet-tile {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+
+/* ── Responsive map ─────────────────────────────────────────── */
+
+@media (max-width: 1080px) {
+  .ops-map-header { flex-direction: column; }
+}
+
+/* ── Hero stats row ─────────────────────────────────────────── */
+
+.hero-stats-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-stat {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.hero-stat-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.hero-stat-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brand-warm);
+}
+
+.hero-stat-sub {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+/* ── Hero map card (decorative) ─────────────────────────────── */
+
+.hero-map-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-map-placeholder {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+}
+
+.hero-map-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--brand-mist) 1px, transparent 1px),
+    linear-gradient(90deg, var(--brand-mist) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.hero-map-pin {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  z-index: 1;
+}
+
+.hero-map-pin-a {
+  background: #e57b1d;
+  top: 30%;
+  left: 28%;
+}
+
+.hero-map-pin-b {
+  background: #006e63;
+  bottom: 28%;
+  right: 24%;
+}
+
+.hero-map-line {
+  position: absolute;
+  top: calc(30% + 6px);
+  left: calc(28% + 6px);
+  width: calc(72% - 24% - 12px);
+  height: calc(70% - 28% - 12px);
+  border-bottom: 2px dashed rgba(229,123,29,.7);
+  border-right: 2px dashed rgba(229,123,29,.7);
+  border-bottom-right-radius: 12px;
+}
