@@ -95,11 +95,11 @@ services:
     ports:
       - "${KIBANA_PORT:-5601}:5601"
     healthcheck:
-      test: ["CMD-SHELL", "status=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5601/login || true); [ \"$$status\" = \"200\" ] || [ \"$$status\" = \"302\" ]"]
+      test: ["CMD-SHELL", "status=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5601/api/status || true); [ \"$$status\" = \"200\" ] || [ \"$$status\" = \"401\" ]"]
       interval: 15s
       timeout: 10s
       retries: 20
-      start_period: 40s
+      start_period: 120s
     restart: unless-stopped
 
   metricbeat:
@@ -134,7 +134,7 @@ services:
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /proc:/hostfs/proc:ro
       - /:/hostfs:ro
-    restart: unless-stopped
+    restart: on-failure:10
 
   mqtt-broker:
     image: eclipse-mosquitto:2
@@ -143,6 +143,13 @@ services:
       - "9001"
     volumes:
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_logs:/mosquitto/log
+    # View MQTT traffic with: docker compose logs -f mqtt-broker
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     restart: unless-stopped
 
 volumes:
@@ -150,3 +157,5 @@ volumes:
     name: ${MYSQL_DATA_VOLUME:-${DATA_VOLUME_PREFIX:-bodaconnect}-mysql-data}
   elasticsearch_data:
     name: ${ELASTICSEARCH_DATA_VOLUME:-${DATA_VOLUME_PREFIX:-bodaconnect}-elasticsearch-data}
+  mosquitto_logs:
+    name: ${DATA_VOLUME_PREFIX:-bodaconnect}-mosquitto-logs
