@@ -53,13 +53,17 @@ processors:
 
 setup.kibana:
   host: "kibana:5601"
+  protocol: "http"
   username: "${KIBANA_USERNAME:elastic}"
   password: "${KIBANA_PASSWORD}"
+  # Give Kibana plenty of time to fully initialise after its healthcheck passes
+  connect_timeout: 60
 
+# Retry dashboard setup until Kibana is truly ready — up to 10 minutes
 setup.dashboards.enabled: true
 setup.dashboards.retry.enabled: true
-setup.dashboards.retry.interval: 10s
-setup.dashboards.retry.maximum: 30
+setup.dashboards.retry.interval: 15s
+setup.dashboards.retry.maximum: 40
 
 output.elasticsearch:
   hosts: ["http://elasticsearch:9200"]
