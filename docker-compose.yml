@@ -118,11 +118,14 @@ services:
     ports:
       - "5601:5601"
     healthcheck:
-      test: ["CMD-SHELL", "status=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5601/login || true); [ \"$$status\" = \"200\" ] || [ \"$$status\" = \"302\" ]"]
+      # Check /api/status (the real API endpoint) rather than the login page
+      # so the healthy signal means Kibana is truly ready to accept API traffic.
+      test: ["CMD-SHELL", "status=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5601/api/status || true); [ \"$$status\" = \"200\" ] || [ \"$$status\" = \"401\" ]"]
       interval: 15s
       timeout: 10s
       retries: 20
-      start_period: 40s
+      # Kibana takes 60-120 s on first boot to initialise its index patterns.
+      start_period: 120s
     restart: unless-stopped
 
   metricbeat:
@@ -158,7 +161,9 @@ services:
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /proc:/hostfs/proc:ro
       - /:/hostfs:ro
-    restart: unless-stopped
+    # on-failure so Docker restarts only if metricbeat crashes (exit != 0).
+    # max_attempts caps the crash loop; once Kibana is up it will stay running.
+    restart: on-failure:10
 
   mqtt-broker:
     image: eclipse-mosquitto:2
@@ -168,8 +173,16 @@ services:
       - "9001:9001"
     volumes:
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_logs:/mosquitto/log
+    # Emit logs to stdout — view with: docker compose logs -f mqtt-broker
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     restart: unless-stopped
 
 volumes:
   mysql_data:
   elasticsearch_data:
+  mosquitto_logs:
