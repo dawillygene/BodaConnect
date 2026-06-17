@@ -186,3 +186,10 @@ docker tag confidehub/bodaconnect-app:latest confidehub/bodaconnect-app:v1
 cd ~/apps/bodaconnect/production && export COMPOSE_PROJECT_NAME='bodaconnect-production' && docker compose -f docker-compose.deploy.yml exec -T app php artisan db:seed --force
 
 cd ~/apps/bodaconnect/staging && export COMPOSE_PROJECT_NAME='bodaconnect-staging' && docker compose -f docker-compose.deploy.yml exec -T app php artisan db:seed --force
+
+
+
+
+docker compose up -d --build
+docker compose logs -f mqtt-broker
+docker compose ps
