@@ -239,6 +239,23 @@ jobs:
           scp -P "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key mosquitto.conf "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}:${DEPLOY_DIRECTORY}/mosquitto.conf"
           scp -P "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key -r monitoring/* "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}:${DEPLOY_DIRECTORY}/monitoring/" || true
 
+      - name: Prepare staging host storage
+        run: |
+          ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
+            "echo '=== disk usage before cleanup ===' \
+            && df -h ${DEPLOY_DIRECTORY%/*} \
+            && df -i ${DEPLOY_DIRECTORY%/*} \
+            && echo '=== docker disk usage before cleanup ===' \
+            && docker system df \
+            && docker image prune -af \
+            && docker builder prune -af \
+            && docker container prune -f \
+            && echo '=== disk usage after cleanup ===' \
+            && df -h ${DEPLOY_DIRECTORY%/*} \
+            && df -i ${DEPLOY_DIRECTORY%/*} \
+            && echo '=== docker disk usage after cleanup ===' \
+            && docker system df"
+
       - name: Write staging environment file
         run: |
           ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" "cat > ${DEPLOY_DIRECTORY}/.env" <<'EOF'
@@ -289,7 +306,12 @@ jobs:
         if: failure()
         run: |
           ssh -p "${STAGING_SSH_PORT}" -i ~/.ssh/staging_key "${{ secrets.STAGING_USER }}@${STAGING_SSH_HOST}" \
-            "cd ${DEPLOY_DIRECTORY} \
+            "echo '=== filesystem usage ===' \
+            && df -h ${DEPLOY_DIRECTORY%/*} \
+            && df -i ${DEPLOY_DIRECTORY%/*} \
+            && echo '=== docker disk usage ===' \
+            && docker system df \
+            && cd ${DEPLOY_DIRECTORY} \
             && export COMPOSE_PROJECT_NAME='${DEPLOY_PROJECT_NAME}' \
             && echo '=== docker compose ps ===' \
             && docker compose -f docker-compose.deploy.yml ps \
@@ -375,6 +397,23 @@ jobs:
           scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key docker-compose.deploy.yml "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:${DEPLOY_DIRECTORY}/docker-compose.deploy.yml"
           scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key mosquitto.conf "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:${DEPLOY_DIRECTORY}/mosquitto.conf"
           scp -P "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key -r monitoring/* "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}:${DEPLOY_DIRECTORY}/monitoring/" || true
+
+      - name: Prepare production host storage
+        run: |
+          ssh -p "${PRODUCTION_SSH_PORT}" -i ~/.ssh/production_key "${{ secrets.PRODUCTION_USER }}@${PRODUCTION_SSH_HOST}" \
+            "echo '=== disk usage before cleanup ===' \
+            && df -h ${DEPLOY_DIRECTORY%/*} \
+            && df -i ${DEPLOY_DIRECTORY%/*} \
+            && echo '=== docker disk usage before cleanup ===' \
+            && docker system df \
+            && docker image prune -af \
+            && docker builder prune -af \
+            && docker container prune -f \
+            && echo '=== disk usage after cleanup ===' \
+            && df -h ${DEPLOY_DIRECTORY%/*} \
+            && df -i ${DEPLOY_DIRECTORY%/*} \
+            && echo '=== docker disk usage after cleanup ===' \
+            && docker system df"
 
       - name: Write production environment file
         run: |
